@@ -1,0 +1,211 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ page_title_display }} Dashboard{% endblock %}
+
+{% macro dashboard_body() %}
+<div class="page-header">
+    <div class="page-header__content">
+        <h1 class="page-header__title">{{ app_name }} - Ticket Dashboard</h1>
+    </div>
+    <div class="page-header__actions">
+        <p class="page-header__description" style="margin: 0;">Real-time view of active tickets from SuperOps</p>
+    </div>
+</div>
+
+{% if error_message %}
+<div class="alert alert--error u-mb-3" id="error-banner">
+    <strong>Error:</strong> {{ error_message }}
+</div>
+{% endif %}
+<div id="api-error-banner" class="alert alert--error u-mb-3" style="display: none;">
+    <strong>Error:</strong> <span id="api-error-message"></span>
+</div>
+
+<div class="card u-mb-3">
+    <div class="card__header">
+        <div class="btn-group">
+            {% for slug, display in supported_views.items() %}
+            <a href="/{{ slug }}"
+               class="btn btn--sm {{ 'btn--primary' if current_view_slug == slug else 'btn--outline' }}">
+                {{ display }}
+            </a>
+            {% endfor %}
+        </div>
+        <div class="ticket-count-display">
+            <span class="ticket-count-label">Total Active</span>
+            <div class="ticket-count-wrapper">
+                <span class="siren siren--left" id="siren-left"></span>
+                <span class="ticket-count-number" id="total-active-items-count">{{ s1_items|length + s2_items|length + s3_items|length + s4_items|length }}</span>
+                <span class="siren siren--right" id="siren-right"></span>
+            </div>
+        </div>
+        <div class="card__header-actions">
+            <div style="text-align: right;">
+                <span class="u-text-small u-text-secondary">Last Refresh:</span>
+                <br>
+                <strong id="dashboard-generated-time" style="font-size: 1.25rem;">Loading...</strong>
+            </div>
+        </div>
+    </div>
+    <div class="card__body">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0;">
+                <label for="agent-filter" class="form-group__label" style="margin-bottom: 0;">Filter by Agent:</label>
+                <select id="agent-filter" class="form-group__select" style="flex: 1; max-width: 200px;">
+                    <option value="">All Agents</option>
+                    {% for agent_id, agent_name in agent_mapping.items() %}
+                        <option value="{{ agent_id }}" {% if agent_id == selected_agent_id %}selected{% endif %}>{{ agent_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button id="refresh-btn" class="btn btn--sm btn--outline" title="Refresh ticket data">Refresh</button>
+                <button id="force-refresh-btn" class="btn btn--sm btn--primary" title="Force refresh from SuperOps API">Force Refresh</button>
+                <span id="refresh-status" class="u-text-small u-text-secondary"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# --- Section 1: Open Tickets --- #}
+<div class="card u-mb-3" id="s1-container">
+    <div class="card__header">
+        <h2 class="card__title">{{ section1_name }} (<span id="s1-item-count">{{ s1_items|length }}</span>)</h2>
+    </div>
+    <div class="card__body">
+        <div class="table-wrapper">
+            <table class="data-table" id="s1-item-table">
+                <thead>
+                    <tr>
+                        <th class="sortable-header" data-sort-key="id">ID</th>
+                        <th class="sortable-header" data-sort-key="subject">Subject</th>
+                        <th class="sortable-header" data-sort-key="requester_name">Requester</th>
+                        <th class="sortable-header" data-sort-key="agent_name">Agent</th>
+                        <th class="sortable-header" data-sort-key="priority_raw">Priority</th>
+                        <th class="sortable-header" data-sort-key="sla_text">Action / SLA</th>
+                        <th class="sortable-header" data-sort-key="updated_at_str">Updated</th>
+                        <th class="sortable-header" data-sort-key="created_at_str">Created</th>
+                    </tr>
+                </thead>
+                <tbody id="s1-items-body"></tbody>
+            </table>
+        </div>
+        <p id="s1-no-items-message" class="empty-state" style="display: none;">No tickets currently in this category.</p>
+    </div>
+</div>
+
+{# --- Section 2: Customer Replied --- #}
+<div class="card u-mb-3" id="s2-container">
+    <div class="card__header">
+        <h2 class="card__title">{{ section2_name }} (<span id="s2-item-count">{{ s2_items|length }}</span>)</h2>
+    </div>
+    <div class="card__body">
+        <div class="table-wrapper">
+            <table class="data-table" id="s2-item-table">
+                <thead>
+                    <tr>
+                        <th class="sortable-header" data-sort-key="id">ID</th>
+                        <th class="sortable-header" data-sort-key="subject">Subject</th>
+                        <th class="sortable-header" data-sort-key="requester_name">Requester</th>
+                        <th class="sortable-header" data-sort-key="agent_name">Agent</th>
+                        <th class="sortable-header" data-sort-key="priority_raw">Priority</th>
+                        <th class="sortable-header" data-sort-key="sla_text">Action / Status</th>
+                        <th class="sortable-header" data-sort-key="updated_at_str">Updated</th>
+                        <th class="sortable-header" data-sort-key="created_at_str">Created</th>
+                    </tr>
+                </thead>
+                <tbody id="s2-items-body"></tbody>
+            </table>
+        </div>
+        <p id="s2-no-items-message" class="empty-state" style="display: none;">No tickets currently have a customer reply.</p>
+    </div>
+</div>
+
+{# --- Section 3: Needs Agent / Update Overdue --- #}
+<div class="card u-mb-3" id="s3-container">
+    <div class="card__header">
+        <h2 class="card__title">{{ section3_name }} (<span id="s3-item-count">{{ s3_items|length }}</span>)</h2>
+    </div>
+    <div class="card__body">
+        <div class="table-wrapper">
+            <table class="data-table" id="s3-item-table">
+                <thead>
+                    <tr>
+                        <th class="sortable-header" data-sort-key="id">ID</th>
+                        <th class="sortable-header" data-sort-key="subject">Subject</th>
+                        <th class="sortable-header" data-sort-key="requester_name">Requester</th>
+                        <th class="sortable-header" data-sort-key="agent_name">Agent</th>
+                        <th class="sortable-header" data-sort-key="priority_raw">Priority</th>
+                        <th class="sortable-header" data-sort-key="sla_text">Action / Status</th>
+                        <th class="sortable-header" data-sort-key="updated_at_str">Updated</th>
+                        <th class="sortable-header" data-sort-key="created_at_str">Created</th>
+                    </tr>
+                </thead>
+                <tbody id="s3-items-body"></tbody>
+            </table>
+        </div>
+        <p id="s3-no-items-message" class="empty-state" style="display: none;">No tickets currently need an agent or have an overdue update.</p>
+    </div>
+</div>
+
+{# --- Section 4: Other Active Tickets --- #}
+<div class="card u-mb-3" id="s4-container">
+    <div class="card__header">
+        <h2 class="card__title">{{ section4_name }} (<span id="s4-item-count">{{ s4_items|length }}</span>)</h2>
+    </div>
+    <div class="card__body">
+        <div class="table-wrapper">
+            <table class="data-table" id="s4-item-table">
+                <thead>
+                    <tr>
+                        <th class="sortable-header" data-sort-key="id">ID</th>
+                        <th class="sortable-header" data-sort-key="subject">Subject</th>
+                        <th class="sortable-header" data-sort-key="requester_name">Requester</th>
+                        <th class="sortable-header" data-sort-key="agent_name">Agent</th>
+                        <th class="sortable-header" data-sort-key="priority_raw">Priority</th>
+                        <th class="sortable-header" data-sort-key="status_text">Status</th>
+                        <th class="sortable-header" data-sort-key="updated_at_str">Updated</th>
+                        <th class="sortable-header" data-sort-key="created_at_str">Created</th>
+                    </tr>
+                </thead>
+                <tbody id="s4-items-body"></tbody>
+            </table>
+        </div>
+        <p id="s4-no-items-message" class="empty-state" style="display: none;">No other active tickets found.</p>
+    </div>
+</div>
+
+<div id="ticket-modal" class="modal">
+    <div class="modal__dialog">
+        <div class="modal__header">
+            <h3 class="modal__title" id="modal-title">Ticket Details</h3>
+            <button class="modal__close">&times;</button>
+        </div>
+        <div class="modal__body">
+            <div id="modal-details-grid"></div>
+            <div class="section-divider u-my-1"></div>
+            <h4>Description</h4>
+            <div id="modal-description"></div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% block content %}
+{{ dashboard_body() }}
+{% endblock %}
+
+{% block public_content %}
+{{ dashboard_body() }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    window.TICKET_BASE_URL = "{{ ticket_base_url }}";
+    window.AUTO_REFRESH_MS = {{ auto_refresh_ms }};
+    window.CURRENT_TICKET_TYPE_SLUG = "{{ current_view_slug }}";
+    window.CURRENT_TICKET_TYPE_DISPLAY = "{{ current_view_display }}";
+    window.ALERT_THRESHOLDS = {{ alert_thresholds | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}

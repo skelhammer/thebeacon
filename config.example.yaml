@@ -1,0 +1,68 @@
+# TheBeacon Configuration
+# Copy this to config.yaml and fill in your SuperOps credentials
+
+superops:
+  api_url: "https://api.superops.ai/api/v1/graphql"
+  api_key: "YOUR_SUPEROPS_API_KEY_HERE"
+  customer_subdomain: "YOUR_SUBDOMAIN"
+  page_size: 100
+  cache_ttl_seconds: 60
+
+# URL template for linking to tickets in SuperOps UI
+# {ticket_id} will be replaced with the actual ticket display ID
+ticket_url_template: "https://YOUR_SUBDOMAIN.superops.ai/servicedesk/tickets/{ticket_id}"
+
+# Named views - each filters tickets by tech group IDs
+views:
+  helpdesk:
+    display_name: "Helpdesk"
+    tech_group_ids: []  # Empty = show all tickets not in other views
+  professional-services:
+    display_name: "Professional Services"
+    tech_group_ids: []  # Add SuperOps tech group IDs here
+
+# Agent dropdown configuration
+agents:
+  auto_fetch: true
+  cache_ttl_seconds: 300
+
+# Maps SuperOps ticket statuses to the 4 dashboard sections
+# Section priority: s3 (checked first) -> s1 -> s2 -> s4 (catch-all)
+status_mapping:
+  open:
+    statuses:
+      - "Open"
+    include_no_first_response: true
+    include_unassigned: true
+  customer_replied:
+    statuses:
+      - "Customer Reply"
+  needs_agent:
+    statuses:
+      - "Pending"
+      - "Waiting on Agent"
+    include_sla_violated: true
+  other_active:
+    statuses:
+      - "In Progress"
+      - "On Hold"
+      - "Waiting on Customer"
+      - "Waiting on Third Party"
+
+# Alert thresholds for total ticket count display
+alert_thresholds:
+  warning: 90
+  danger: 100
+  critical: 110
+  emergency: 120
+
+# Dashboard settings
+dashboard:
+  refresh_interval_seconds: 60
+  app_name: "TheBeacon"
+  port: 5050
+
+# Statuses to exclude from all queries (tickets in these statuses are never shown)
+closed_statuses:
+  - "Resolved"
+  - "Closed"

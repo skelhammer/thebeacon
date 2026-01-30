@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TheBeacon - Standalone ticket dashboard for SuperOps">
+    <title>{% block title %}Dashboard{% endblock %} - {{ app_name }}</title>
+
+    <!-- Prevent theme flash: apply saved theme before any CSS renders -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('thebeacon-theme') || 'light';
+            var colorTheme = localStorage.getItem('thebeacon-color-theme') || '';
+            var collapsed = localStorage.getItem('thebeacon-sidebar-collapsed') === 'true';
+
+            document.documentElement.setAttribute('data-theme', theme);
+            if (colorTheme) {
+                document.documentElement.setAttribute('data-color-theme', colorTheme);
+            }
+            if (collapsed) {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/thebeacon.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Matrix rain canvas (hidden unless matrix theme active) -->
+    <canvas id="matrix-rain"></canvas>
+    <!-- Bee container (hidden unless bee theme active) -->
+    <div id="bee-container"></div>
+
+    {% if not is_public %}
+    <div class="hivematrix-layout">
+        <!-- Sidebar -->
+        <aside class="hivematrix-side-panel" id="side-panel">
+            <div class="side-panel__header">
+                <button class="side-panel__toggle" id="sidebar-toggle" title="Toggle sidebar">
+                    <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <h1 class="side-panel__title">{{ app_name }}</h1>
+            </div>
+
+            <nav class="side-panel__nav">
+                <ul class="side-panel__list">
+                    {% for slug, display in supported_views.items() %}
+                    <li class="side-panel__item {{ 'side-panel__item--active' if slug == current_view_slug else '' }}">
+                        <a class="side-panel__link" href="/{{ slug }}">
+                            <span class="side-panel__icon">
+                                <i data-lucide="ticket"></i>
+                            </span>
+                            <span class="side-panel__label">{{ display }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                    <li class="side-panel__item">
+                        <a class="side-panel__link" href="/display/{{ current_view_slug }}" target="_blank">
+                            <span class="side-panel__icon">
+                                <i data-lucide="monitor"></i>
+                            </span>
+                            <span class="side-panel__label">TV Display</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="side-panel__footer">
+                <!-- Theme toggle -->
+                <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode">
+                    <div class="theme-toggle__track">
+                        <div class="theme-toggle__thumb">
+                            <svg class="theme-icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                            <svg class="theme-icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- Color theme swatches -->
+                <div class="theme-picker" id="color-theme-picker">
+                    <div class="theme-swatch" data-color="" style="background: #6366f1;" title="Violet (Default)"></div>
+                    <div class="theme-swatch" data-color="blue" style="background: #0ea5e9;" title="Blue"></div>
+                    <div class="theme-swatch" data-color="green" style="background: #059669;" title="Green"></div>
+                    <div class="theme-swatch" data-color="orange" style="background: #f97316;" title="Orange"></div>
+                    <div class="theme-swatch" data-color="gold" style="background: #B39B7E;" title="Gold"></div>
+                    <div class="theme-swatch" data-color="red" style="background: #dc2626;" title="Red"></div>
+                    <div class="theme-swatch" data-color="yellow" style="background: #eab308;" title="Yellow"></div>
+                    <div class="theme-swatch" data-color="matrix" style="background: #00ff41;" title="Matrix"></div>
+                    <div class="theme-swatch" data-color="bee" style="background: #FFB300;" title="Bee"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <div class="hivematrix-content">
+            <main role="main" aria-label="Main content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    {% else %}
+    <!-- Public/TV display mode: no sidebar -->
+    <main role="main" aria-label="Main content">
+        {% block public_content %}{% endblock %}
+    </main>
+    {% endif %}
+
+    <footer class="version-footer" role="contentinfo">
+        <span class="version-footer__text">{{ app_name }} v{{ app_version }}</span>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
