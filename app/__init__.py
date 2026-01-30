@@ -59,7 +59,7 @@ def create_app(config):
     def inject_globals():
         return {
             'app_name': app_name,
-            'app_version': '1.0.0',
+            'app_version': '1.0.1',
         }
 
     # --- Helpers ---
@@ -109,12 +109,11 @@ def create_app(config):
             logger.error(f"Error getting tickets for view {view_slug}: {e}")
             return [], [], [], [], {}, str(e)
 
-    def _build_ticket_base_url():
-        """Build ticket URL base from config template."""
-        template = config.get('ticket_url_template', '')
-        return template.replace('{ticket_id}', '') if template else ''
+    def _build_ticket_url_template():
+        """Get the ticket URL template from config."""
+        return config.get('ticket_url_template', '')
 
-    def _render_dashboard(view_slug, agent_id, is_public=False):
+    def _render_dashboard(view_slug, agent_id):
         """Render the dashboard template for a view."""
         supported_views = _get_supported_views()
         current_view_display = supported_views.get(view_slug, view_slug)
@@ -125,10 +124,8 @@ def create_app(config):
 
         dashboard_time_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
         refresh_ms = config.get('dashboard', {}).get('refresh_interval_seconds', 60) * 1000
-        ticket_base_url = _build_ticket_base_url()
+        ticket_url_template = _build_ticket_url_template()
         thresholds = config.get('alert_thresholds', {})
-
-        page_title = f"{current_view_display} (TV Display)" if is_public else current_view_display
 
         return render_template(
             'index.html',
@@ -138,11 +135,11 @@ def create_app(config):
             s4_items=s4,
             dashboard_generated_time_iso=dashboard_time_iso,
             auto_refresh_ms=refresh_ms,
-            ticket_base_url=ticket_base_url,
+            ticket_url_template=ticket_url_template,
             current_view_slug=view_slug,
             current_view_display=current_view_display,
             supported_views=supported_views,
-            page_title_display=page_title,
+            page_title_display=current_view_display,
             section1_name=f"Open {current_view_display} Tickets",
             section2_name="Customer Replied",
             section3_name="Needs Agent / Update Overdue",
@@ -150,7 +147,6 @@ def create_app(config):
             agent_mapping=agent_mapping,
             selected_agent_id=agent_id,
             error_message=error,
-            is_public=is_public,
             alert_thresholds=thresholds,
         )
 
@@ -169,17 +165,7 @@ def create_app(config):
         if view_slug not in supported:
             abort(404, description=f"Unknown view: {view_slug}")
         agent_id = request.args.get('agent_id', type=int)
-        return _render_dashboard(view_slug, agent_id, is_public=False)
-
-    @app.route('/display/<view_slug>')
-    @limiter.exempt
-    def display_public(view_slug):
-        """Public TV display (no sidebar)."""
-        supported = _get_supported_views()
-        if view_slug not in supported:
-            abort(404, description=f"Unknown view: {view_slug}")
-        agent_id = request.args.get('agent_id', type=int)
-        return _render_dashboard(view_slug, agent_id, is_public=True)
+        return _render_dashboard(view_slug, agent_id)
 
     @app.route('/api/tickets/<view_slug>')
     @limiter.limit("60 per minute")

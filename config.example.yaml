@@ -2,7 +2,7 @@
 # Copy this to config.yaml and fill in your SuperOps credentials
 
 superops:
-  api_url: "https://api.superops.ai/api/v1/graphql"
+  api_url: "https://api.superops.ai/msp"
   api_key: "YOUR_SUPEROPS_API_KEY_HERE"
   customer_subdomain: "YOUR_SUBDOMAIN"
   page_size: 100
@@ -17,8 +17,8 @@ views:
   helpdesk:
     display_name: "Helpdesk"
     tech_group_ids: []  # Empty = show all tickets not in other views
-  professional-services:
-    display_name: "Professional Services"
+  pro-services:
+    display_name: "Pro Services"
     tech_group_ids: []  # Add SuperOps tech group IDs here
 
 # Agent dropdown configuration

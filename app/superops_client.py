@@ -14,20 +14,10 @@ class SuperOpsClient:
         subject
         status
         priority
-        technician {
-            userId
-            name
-        }
-        requester {
-            name
-        }
-        client {
-            name
-        }
-        techGroup {
-            groupId
-            name
-        }
+        technician
+        requester
+        client
+        techGroup
         createdTime
         updatedTime
         firstResponseDueTime
@@ -36,11 +26,8 @@ class SuperOpsClient:
         resolutionDueTime
         resolutionTime
         resolutionViolated
-        sla {
-            name
-        }
-        description
-        ticketType
+        sla
+        requestType
     """
 
     def __init__(self, config):
@@ -123,36 +110,42 @@ class SuperOpsClient:
         all_tickets = []
         page = 1
 
-        # Build status filter to exclude closed statuses
-        status_filter = ', '.join(f'"{s}"' for s in self.closed_statuses)
-
-        while True:
-            query = f"""
-            {{
-                getTicketList(
-                    filter: {{
-                        status: {{ notIncludes: [{status_filter}] }}
-                    }}
-                    pageConfig: {{
-                        page: {page}
-                        limit: {self.page_size}
-                    }}
-                ) {{
-                    data {{
-                        {self.TICKET_FIELDS}
-                    }}
+        query = """
+        query getTicketList($input: ListInfoInput!) {
+            getTicketList(input: $input) {
+                tickets {
+                    """ + self.TICKET_FIELDS + """
+                }
+                listInfo {
+                    page
+                    pageSize
                     hasMore
                     totalCount
-                }}
-            }}
-            """
+                }
+            }
+        }
+        """
 
-            data = self._post_graphql(query)
+        while True:
+            variables = {
+                "input": {
+                    "page": page,
+                    "pageSize": self.page_size,
+                    "condition": {
+                        "attribute": "status",
+                        "operator": "notIncludes",
+                        "value": self.closed_statuses,
+                    }
+                }
+            }
+
+            data = self._post_graphql(query, variables)
             result = data.get('getTicketList', {})
-            tickets = result.get('data', [])
+            tickets = result.get('tickets', [])
             all_tickets.extend(tickets)
 
-            if not result.get('hasMore', False):
+            list_info = result.get('listInfo', {})
+            if not list_info.get('hasMore', False):
                 break
 
             page += 1
@@ -165,6 +158,7 @@ class SuperOpsClient:
 
     def _normalize_ticket(self, ticket):
         """Normalize SuperOps ticket fields to Beacon-compatible names."""
+        # JSON scalar fields return dicts directly
         technician = ticket.get('technician') or {}
         requester = ticket.get('requester') or {}
         client = ticket.get('client') or {}
@@ -173,7 +167,7 @@ class SuperOpsClient:
 
         # Map priority string to numeric for sorting
         priority_text = ticket.get('priority') or 'N/A'
-        priority_map = {'Low': 1, 'Medium': 2, 'High': 3, 'Critical': 4, 'Urgent': 4}
+        priority_map = {'Very Low': 0, 'Low': 1, 'Medium': 2, 'High': 3, 'Critical': 4, 'Urgent': 4}
         priority_raw = priority_map.get(priority_text, 0)
 
         return {
@@ -184,12 +178,12 @@ class SuperOpsClient:
             'priority_text': priority_text,
             'priority_raw': priority_raw,
             'agent_name': technician.get('name'),
-            'responder_id': technician.get('userId'),
+            'responder_id': str(technician.get('userId', '')) if technician.get('userId') else None,
             'requester_name': requester.get('name') or 'Unknown',
             'client_name': client.get('name'),
-            'group_id': tech_group.get('groupId'),
+            'group_id': str(tech_group.get('groupId', '')) if tech_group.get('groupId') else None,
             'group_name': tech_group.get('name'),
-            'type': ticket.get('ticketType'),
+            'type': ticket.get('requestType'),
             'created_at_str': ticket.get('createdTime'),
             'updated_at_str': ticket.get('updatedTime'),
             'fr_due_by_str': ticket.get('firstResponseDueTime'),
@@ -199,7 +193,7 @@ class SuperOpsClient:
             'resolution_time': ticket.get('resolutionTime'),
             'resolution_violated': ticket.get('resolutionViolated', False),
             'sla_name': sla.get('name'),
-            'description_text': ticket.get('description') or '',
+            'description_text': '',
         }
 
     def fetch_technicians(self, force=False):
@@ -215,26 +209,43 @@ class SuperOpsClient:
 
         try:
             query = """
-            {
-                getTechnicianList {
-                    data {
+            query getTechnicianList($input: ListInfoInput!) {
+                getTechnicianList(input: $input) {
+                    userList {
                         userId
                         name
-                        isActive
+                    }
+                    listInfo {
+                        page
+                        pageSize
+                        hasMore
+                        totalCount
                     }
                 }
             }
             """
-            data = self._post_graphql(query)
-            techs = data.get('getTechnicianList', {}).get('data', [])
-
+            # Fetch all technicians (paginate if needed)
             mapping = {}
-            for tech in techs:
-                if tech.get('isActive', True):
+            page = 1
+            while True:
+                variables = {
+                    "input": {
+                        "page": page,
+                        "pageSize": 100,
+                    }
+                }
+                data = self._post_graphql(query, variables)
+                result = data.get('getTechnicianList', {})
+                techs = result.get('userList', [])
+                for tech in techs:
                     user_id = tech.get('userId')
                     name = tech.get('name')
                     if user_id and name:
-                        mapping[user_id] = name
+                        mapping[str(user_id)] = name
+                list_info = result.get('listInfo', {})
+                if not list_info.get('hasMore', False):
+                    break
+                page += 1
 
             self._agent_cache = mapping
             self._agent_cache_time = time.time()

@@ -42,6 +42,9 @@ def map_tickets_to_sections(tickets, config):
         is_sla_violated = ticket.get('first_response_violated') or ticket.get('resolution_violated')
         is_unassigned = not ticket.get('agent_name')
 
+        # Statuses explicitly mapped to other sections
+        other_statuses = s2_statuses | s3_statuses | s4_statuses
+
         # Section 3: Check first - SLA violated or specific statuses
         if s3_cfg.get('include_sla_violated') and is_sla_violated:
             s3.append(ticket)
@@ -50,9 +53,9 @@ def map_tickets_to_sections(tickets, config):
         # Section 1: Open / no first response / unassigned
         elif status in s1_statuses:
             s1.append(ticket)
-        elif s1_cfg.get('include_no_first_response') and not has_first_response and status not in s2_statuses:
+        elif s1_cfg.get('include_no_first_response') and not has_first_response and status not in other_statuses:
             s1.append(ticket)
-        elif s1_cfg.get('include_unassigned') and is_unassigned and status not in s2_statuses:
+        elif s1_cfg.get('include_unassigned') and is_unassigned and status not in other_statuses:
             s1.append(ticket)
         # Section 2: Customer replied
         elif status in s2_statuses:
@@ -222,16 +225,23 @@ def _parse_datetime(dt_str):
         dt_str = dt_str[:-1] + '+00:00'
 
     try:
-        return datetime.datetime.fromisoformat(dt_str)
+        dt = datetime.datetime.fromisoformat(dt_str)
     except ValueError:
         # Try common formats
-        for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f'):
+        dt = None
+        for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M'):
             try:
                 dt = datetime.datetime.strptime(dt_str, fmt)
-                return dt.replace(tzinfo=datetime.timezone.utc)
+                break
             except ValueError:
                 continue
-        raise ValueError(f"Unable to parse datetime: {dt_str}")
+        if dt is None:
+            raise ValueError(f"Unable to parse datetime: {dt_str}")
+
+    # Ensure timezone-aware (assume UTC if naive)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt
 
 
 def _friendly_timedelta(delta):

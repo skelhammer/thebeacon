@@ -66,19 +66,19 @@
 
     // --- Sidebar Collapse Toggle ---
     const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidePanel = document.getElementById('side-panel');
+    const layoutEl = document.querySelector('.hivematrix-layout');
 
-    if (sidebarToggle && sidePanel) {
+    if (sidebarToggle && layoutEl) {
         // Remove the no-transition class after initial load
         requestAnimationFrame(() => {
             document.documentElement.classList.remove('sidebar-collapsed');
             if (localStorage.getItem(STORAGE_KEYS.sidebarCollapsed) === 'true') {
-                sidePanel.classList.add('collapsed');
+                layoutEl.classList.add('sidebar-collapsed');
             }
         });
 
         sidebarToggle.addEventListener('click', () => {
-            const isCollapsed = sidePanel.classList.toggle('collapsed');
+            const isCollapsed = layoutEl.classList.toggle('sidebar-collapsed');
             localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, isCollapsed);
         });
     }

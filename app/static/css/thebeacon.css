@@ -2471,6 +2471,7 @@ table td a:hover {
     height: 100vh;
     z-index: 1000;
     border-right: 1px solid var(--color-border-light);
+    overflow: hidden;
     transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -2535,11 +2536,11 @@ table td a:hover {
 }
 
 /* Collapsed State - Smooth animation with stationary icons */
-.hivematrix-side-panel.collapsed {
+.sidebar-collapsed .hivematrix-side-panel {
     width: 76px;
 }
 
-.hivematrix-side-panel.collapsed + .hivematrix-content {
+.sidebar-collapsed .hivematrix-content {
     margin-left: 76px;
 }
 
@@ -2563,27 +2564,25 @@ html.sidebar-collapsed .side-panel__label {
 }
 
 /* Title fades out smoothly */
-.hivematrix-side-panel.collapsed .side-panel__title {
+.sidebar-collapsed .side-panel__title {
     opacity: 0;
     width: 0;
     overflow: hidden;
 }
 
 /* Labels fade out smoothly - icons stay in place */
-.hivematrix-side-panel.collapsed .side-panel__label {
+.sidebar-collapsed .side-panel__label {
     opacity: 0;
     width: 0;
     overflow: hidden;
 }
 
-/* No padding overrides needed - same padding in both states keeps icons stationary */
-
 /* Footer alignment */
-.hivematrix-side-panel.collapsed .side-panel__footer {
+.sidebar-collapsed .side-panel__footer {
     align-items: stretch;
 }
 
-.hivematrix-side-panel.collapsed .side-panel__footer .side-panel__link {
+.sidebar-collapsed .side-panel__footer .side-panel__link {
     width: 100%;
 }
 

@@ -22,15 +22,7 @@
 </div>
 
 <div class="card u-mb-3">
-    <div class="card__header">
-        <div class="btn-group">
-            {% for slug, display in supported_views.items() %}
-            <a href="/{{ slug }}"
-               class="btn btn--sm {{ 'btn--primary' if current_view_slug == slug else 'btn--outline' }}">
-                {{ display }}
-            </a>
-            {% endfor %}
-        </div>
+    <div class="card__header" style="justify-content: center; position: relative;">
         <div class="ticket-count-display">
             <span class="ticket-count-label">Total Active</span>
             <div class="ticket-count-wrapper">
@@ -39,12 +31,10 @@
                 <span class="siren siren--right" id="siren-right"></span>
             </div>
         </div>
-        <div class="card__header-actions">
-            <div style="text-align: right;">
-                <span class="u-text-small u-text-secondary">Last Refresh:</span>
-                <br>
-                <strong id="dashboard-generated-time" style="font-size: 1.25rem;">Loading...</strong>
-            </div>
+        <div style="position: absolute; right: 2rem; text-align: right;">
+            <span class="u-text-small u-text-secondary">Last Refresh:</span>
+            <br>
+            <strong id="dashboard-generated-time" style="font-size: 1.25rem;">Loading...</strong>
         </div>
     </div>
     <div class="card__body">
@@ -195,17 +185,13 @@
 {{ dashboard_body() }}
 {% endblock %}
 
-{% block public_content %}
-{{ dashboard_body() }}
-{% endblock %}
-
 {% block scripts %}
 <script>
-    window.TICKET_BASE_URL = "{{ ticket_base_url }}";
+    window.TICKET_URL_TEMPLATE = "{{ ticket_url_template }}";
     window.AUTO_REFRESH_MS = {{ auto_refresh_ms }};
     window.CURRENT_TICKET_TYPE_SLUG = "{{ current_view_slug }}";
     window.CURRENT_TICKET_TYPE_DISPLAY = "{{ current_view_display }}";
     window.ALERT_THRESHOLDS = {{ alert_thresholds | tojson }};
 </script>
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}?v={{ app_version }}"></script>
 {% endblock %}

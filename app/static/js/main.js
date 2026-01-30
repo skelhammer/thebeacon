@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const TICKET_BASE_URL = window.TICKET_BASE_URL || '';
+    const TICKET_URL_TEMPLATE = window.TICKET_URL_TEMPLATE || '';
     const AUTO_REFRESH_INTERVAL_MS = window.AUTO_REFRESH_MS || 0;
     const CURRENT_TICKET_TYPE_SLUG = window.CURRENT_TICKET_TYPE_SLUG || 'helpdesk';
     const THRESHOLDS = window.ALERT_THRESHOLDS || { warning: 90, danger: 100, critical: 110, emergency: 120 };
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return `
         <tr>
-            <td><a href="${TICKET_BASE_URL}${itemId}" target="_blank">${itemId}</a></td>
+            <td><a href="${TICKET_URL_TEMPLATE.replace('{ticket_id}', item.ticket_id || '')}" target="_blank">${itemId}</a></td>
             <td>
                 <a href="#" class="modal-trigger" data-item-id="${itemId}" data-section-prefix="${sectionIdPrefix}">
                     ${subjectText}
