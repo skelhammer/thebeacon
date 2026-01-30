@@ -59,7 +59,7 @@ def create_app(config):
     def inject_globals():
         return {
             'app_name': app_name,
-            'app_version': '1.0.1',
+            'app_version': '1.0.3',
         }
 
     # --- Helpers ---

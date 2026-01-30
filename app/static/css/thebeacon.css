@@ -363,7 +363,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: -1;
+    z-index: 9999;
     opacity: 0;
     transition: opacity 0.5s ease;
     pointer-events: none;
@@ -374,20 +374,16 @@
     opacity: 1;
 }
 
-/* Honeycomb background pattern - proper hexagons with golden hues */
+/* Bee theme background — warm golden meadow gradient (light mode) */
 [data-theme="light"][data-color-theme="bee"] body {
-    background-color: var(--color-bg-primary);
-    background-image: url("data:image/svg+xml,%3Csvg width='56' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100' fill='none' stroke='%23DAA520' stroke-opacity='0.15' stroke-width='1'/%3E%3Cpath d='M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34' fill='none' stroke='%23B8860B' stroke-opacity='0.12' stroke-width='1'/%3E%3C/svg%3E");
-    background-size: 56px 100px;
-    background-repeat: repeat;
+    background: linear-gradient(160deg, #FFF8E1 0%, #FFECB3 25%, #FFE082 50%, #FFECB3 75%, #FFFDE7 100%);
+    background-attachment: fixed;
 }
 
-/* Dark mode honeycomb - subtle golden tones */
+/* Bee theme background — dark amber honey (dark mode) */
 [data-theme="dark"][data-color-theme="bee"] body {
-    background-color: var(--color-bg-primary);
-    background-image: url("data:image/svg+xml,%3Csvg width='56' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100' fill='none' stroke='%23FFD700' stroke-opacity='0.04' stroke-width='1'/%3E%3Cpath d='M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34' fill='none' stroke='%23FFDB58' stroke-opacity='0.03' stroke-width='1'/%3E%3C/svg%3E");
-    background-size: 56px 100px;
-    background-repeat: repeat;
+    background: linear-gradient(160deg, #1a1200 0%, #2a1d00 25%, #33250a 50%, #2a1d00 75%, #1a1200 100%);
+    background-attachment: fixed;
 }
 
 [data-color-theme="bee"] .hivematrix-content {
@@ -397,10 +393,112 @@
 /* Bee element styling */
 .bee {
     position: absolute;
-    font-size: 24px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    will-change: transform, left, top, opacity;
+    line-height: 1;
+}
+
+/* Wing buzz animation — subtle rapid vibration */
+.bee--buzzing {
+    animation: bee-buzz 0.08s infinite alternate;
+}
+
+@keyframes bee-buzz {
+    0%   { margin-top: 0; }
+    100% { margin-top: -1.5px; }
+}
+
+/* Queen bee — golden glow */
+.bee--queen {
+    filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.6))
+            drop-shadow(0 0 16px rgba(255, 179, 0, 0.3));
+    animation: bee-buzz 0.07s infinite alternate, queen-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes queen-glow {
+    0%   { filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.6)) drop-shadow(0 0 16px rgba(255, 179, 0, 0.3)); }
+    100% { filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 24px rgba(255, 179, 0, 0.5)); }
+}
+
+/* Tiny baby bee — extra fast buzz */
+.bee--tiny {
+    animation: bee-buzz 0.05s infinite alternate;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+}
+
+/* Pollen sparkle particles */
+.bee-pollen {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #FFD700 0%, #FFA000 60%, transparent 100%);
+    pointer-events: none;
+    z-index: 9999;
+    animation: pollen-drift 1.2s ease-out forwards;
+}
+
+@keyframes pollen-drift {
+    0% {
+        opacity: 0.9;
+        transform: scale(1) translateY(0);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.7) translateY(12px) translateX(var(--pollen-drift-x, 5px));
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.2) translateY(30px) translateX(var(--pollen-drift-x, 10px));
+    }
+}
+
+/* Randomize pollen drift direction via nth-child */
+.bee-pollen:nth-child(odd) { --pollen-drift-x: -8px; }
+.bee-pollen:nth-child(3n)  { --pollen-drift-x: 12px; }
+.bee-pollen:nth-child(5n)  { --pollen-drift-x: -15px; width: 4px; height: 4px; }
+.bee-pollen:nth-child(7n)  { --pollen-drift-x: 3px; width: 8px; height: 8px; background: radial-gradient(circle, #FFE082 0%, #FFB300 100%); }
+
+/* Floating flowers & honeycombs for bees to visit */
+.bee-flower {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9997;
+    line-height: 1;
+    animation: flower-appear 0.8s ease-out forwards, flower-sway 3s ease-in-out infinite;
+    will-change: transform, opacity;
+}
+
+@keyframes flower-appear {
+    0%   { opacity: 0; transform: scale(0.3) rotate(-20deg); }
+    60%  { opacity: 1; transform: scale(1.1) rotate(5deg); }
+    100% { opacity: 0.85; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes flower-sway {
+    0%   { transform: rotate(0deg); }
+    25%  { transform: rotate(5deg); }
+    75%  { transform: rotate(-5deg); }
+    100% { transform: rotate(0deg); }
+}
+
+.bee-flower--fading {
+    animation: flower-fade 1s ease-in forwards;
+}
+
+@keyframes flower-fade {
+    0%   { opacity: 0.85; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.5) rotate(15deg) translateY(20px); }
+}
+
+/* Honeycomb variant — gentle golden glow instead of sway */
+.bee-flower--honeycomb {
+    animation: flower-appear 0.8s ease-out forwards, honeycomb-pulse 3s ease-in-out infinite alternate;
+}
+
+@keyframes honeycomb-pulse {
+    0%   { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
+    100% { transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(255, 179, 0, 0.3)); }
 }
 
 /* ========================================
