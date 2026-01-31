@@ -18,7 +18,7 @@ No database required. No external service dependencies. Just a Flask app and you
 - **Color themes** - Violet and MSP Gold
 - **Collapsible sidebar** - Hamburger menu toggle
 - **Alert thresholds** - Visual warnings when ticket count gets high (sirens at emergency level)
-- **Easter eggs** - ↑↑↓↓←→←→BA
+- **Easter eggs** - There may be secrets hidden in the dashboard...
 
 ## Quick Start
 
