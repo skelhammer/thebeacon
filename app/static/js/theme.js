@@ -20,10 +20,10 @@
             playCount++;
             if (playCount < 3) {
                 audio.currentTime = 0;
-                audio.play();
+                audio.play().catch(function() {});
             }
         });
-        audio.play();
+        audio.play().catch(function() {});
     }
 
     // --- Easter Egg Unlock (tap title 69 times) ---
@@ -61,7 +61,7 @@
 
                     // Play Meridia's Beacon audio
                     var beaconAudio = new Audio('/static/audio/meridias-beacon.mp3');
-                    beaconAudio.play();
+                    beaconAudio.play().catch(function() {});
 
                     picker.classList.add('theme-picker--unlocked');
                     localStorage.setItem(STORAGE_KEYS.easterEggsUnlocked, 'true');
@@ -452,7 +452,7 @@
                 overlay.innerHTML = '<div style="font-family:Courier New,monospace;font-size:3rem;color:#00ff41;text-shadow:0 0 20px #00ff41,0 0 40px rgba(0,255,65,0.3);text-align:center;line-height:1.6;">There is no spoon</div>';
                 document.body.appendChild(overlay);
                 var spoonAudio = new Audio('/static/audio/there-is-no-spoon.mp3');
-                spoonAudio.play();
+                spoonAudio.play().catch(function() {});
                 // Fade in
                 requestAnimationFrame(function() { overlay.style.opacity = '1'; });
                 // Fade out after 3s
@@ -494,6 +494,7 @@
     var beeTimers = [];
     var beeMoveHandler = null;
     var beeIdleMoveHandler = null;
+    var beeResizeHandler = null;
 
     function handleBeeAnimation(active) {
         var container = document.getElementById('bee-container');
@@ -510,6 +511,10 @@
                 document.removeEventListener('mousemove', beeIdleMoveHandler);
                 beeIdleMoveHandler = null;
             }
+            if (beeResizeHandler) {
+                window.removeEventListener('resize', beeResizeHandler);
+                beeResizeHandler = null;
+            }
             // Remove leftover easter egg elements
             document.querySelectorAll('.bee-bear, .bee-hive-cluster, .bee-hive-bee').forEach(function(el) { el.remove(); });
             container.innerHTML = '';
@@ -518,7 +523,8 @@
 
         var W = window.innerWidth;
         var H = window.innerHeight;
-        window.addEventListener('resize', function() { W = window.innerWidth; H = window.innerHeight; });
+        beeResizeHandler = function() { W = window.innerWidth; H = window.innerHeight; };
+        window.addEventListener('resize', beeResizeHandler);
 
         // ========================
         //  UTILITY
@@ -1246,9 +1252,7 @@
         // --- Konami: Unleash the Swarm ---
         konamiCallback = function() {
             var swarmCount = 100 + Math.floor(Math.random() * 51);
-            // Buzz for the full swarm: spawn time + average flight duration
-            var spawnSeconds = (swarmCount - 1) * 0.075;
-            playBeeSwarmBuzz(spawnSeconds + 10);
+            playBeeSwarmBuzz();
             for (var i = 0; i < swarmCount; i++) {
                 (function(delay) {
                     var t = setTimeout(function() {
@@ -1275,7 +1279,7 @@
 
     function triggerBSOD() {
         var bsodAudio = new Audio('/static/audio/windows-bsod.mp3');
-        bsodAudio.play();
+        bsodAudio.play().catch(function() {});
         var overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0078D7;z-index:999999;display:flex;flex-direction:column;justify-content:center;padding-left:10%;font-family:Segoe UI,sans-serif;color:white;cursor:default;';
         overlay.innerHTML =

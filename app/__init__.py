@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 from flask import Flask, render_template, jsonify, redirect, request, abort
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -29,7 +30,7 @@ def create_app(config):
     global _client
 
     app = Flask(__name__, static_folder='static')
-    app.secret_key = 'thebeacon-standalone-key'
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(32))
 
     # Logging
     log_level = config.get('dashboard', {}).get('log_level', 'INFO').upper()
@@ -48,6 +49,14 @@ def create_app(config):
 
     # Initialize SuperOps client
     _client = SuperOpsClient(config)
+
+    # Security headers
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        return response
 
     # Context processor for templates
     dashboard_cfg = config.get('dashboard', {})
@@ -124,7 +133,7 @@ def create_app(config):
             return s1, s2, s3, s4, agent_mapping, None
         except Exception as e:
             logger.error(f"Error getting tickets for view {view_slug}: {e}")
-            return [], [], [], [], {}, str(e)
+            return [], [], [], [], {}, "Failed to load ticket data. Check server logs for details."
 
     def _build_ticket_url_template():
         """Get the ticket URL template from config."""
@@ -181,7 +190,7 @@ def create_app(config):
         """Main dashboard for a specific view."""
         supported = _get_supported_views()
         if view_slug not in supported:
-            abort(404, description=f"Unknown view: {view_slug}")
+            abort(404)
         agent_id = request.args.get('agent_id', type=int)
         return _render_dashboard(view_slug, agent_id)
 
@@ -191,7 +200,7 @@ def create_app(config):
         """JSON API for ticket data (used by auto-refresh)."""
         supported = _get_supported_views()
         if view_slug not in supported:
-            return jsonify({"error": f"Unknown view: {view_slug}"}), 404
+            return jsonify({"error": "Unknown view"}), 404
 
         agent_id = request.args.get('agent_id', type=int)
         current_view_display = supported[view_slug]['display_name']

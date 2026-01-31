@@ -96,7 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const TICKET_URL_TEMPLATE = window.TICKET_URL_TEMPLATE || '';
+    const _rawTicketUrl = window.TICKET_URL_TEMPLATE || '';
+    const TICKET_URL_TEMPLATE = /^https?:\/\//.test(_rawTicketUrl) ? _rawTicketUrl : '';
     const AUTO_REFRESH_INTERVAL_MS = window.AUTO_REFRESH_MS || 0;
     const CURRENT_TICKET_TYPE_SLUG = window.CURRENT_TICKET_TYPE_SLUG || 'helpdesk';
     const THRESHOLDS = window.ALERT_THRESHOLDS || { warning: 90, danger: 100, critical: 110, emergency: 120 };
@@ -117,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const agentName = escapeHtml(item.agent_name || 'Unassigned');
         const priorityText = escapeHtml(item.priority_text || 'N/A');
         const slaText = escapeHtml(item.sla_text || 'N/A');
-        const slaClass = escapeHtml(item.sla_class || 'sla-none');
+        const slaClass = (item.sla_class || 'sla-none').replace(/[^a-zA-Z0-9_-]/g, '');
         const updatedFriendly = escapeHtml(item.updated_friendly || 'N/A');
         const createdDaysOld = escapeHtml(item.created_days_old || 'N/A');
         const ticketId = escapeHtml(item.ticket_id || '');
@@ -131,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             slaDetailHtml = `<div class="datetime-container" data-utc-datetime="${escapeHtml(item.due_by_str)}" data-prefix="Due: "><small class="local-datetime">Loading...</small></div>`;
         }
 
-        const prioritySlug = (item.priority_text || 'n-a').toLowerCase().replace(/\s+/g, '-');
+        const prioritySlug = (item.priority_text || 'n-a').toLowerCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
 
         return `
         <tr>
@@ -232,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectedAgentId) {
                 url.searchParams.set('agent_id', selectedAgentId);
             }
-            const response = await fetch(url, { credentials: 'same-origin' });
+            const response = await fetch(url, { credentials: 'same-origin', signal: AbortSignal.timeout(30000) });
             if (!response.ok) {
                 console.error('Failed to fetch data:', response.status);
                 if (apiErrorBanner && apiErrorMessage) {

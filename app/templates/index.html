@@ -157,10 +157,10 @@
 
 {% block scripts %}
 <script>
-    window.TICKET_URL_TEMPLATE = "{{ ticket_url_template }}";
+    window.TICKET_URL_TEMPLATE = {{ ticket_url_template | tojson }};
     window.AUTO_REFRESH_MS = {{ auto_refresh_ms }};
-    window.CURRENT_TICKET_TYPE_SLUG = "{{ current_view_slug }}";
-    window.CURRENT_TICKET_TYPE_DISPLAY = "{{ current_view_display }}";
+    window.CURRENT_TICKET_TYPE_SLUG = {{ current_view_slug | tojson }};
+    window.CURRENT_TICKET_TYPE_DISPLAY = {{ current_view_display | tojson }};
     window.ALERT_THRESHOLDS = {{ alert_thresholds | tojson }};
     window.INITIAL_API_DATA = {
         s1_items: {{ s1_items | tojson }},
@@ -168,7 +168,7 @@
         s3_items: {{ s3_items | tojson }},
         s4_items: {{ s4_items | tojson }},
         total_active_items: {{ (s1_items|length + s2_items|length + s3_items|length + s4_items|length) }},
-        dashboard_generated_time_iso: "{{ dashboard_generated_time_iso }}"
+        dashboard_generated_time_iso: {{ dashboard_generated_time_iso | tojson }}
     };
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}?v={{ app_version }}"></script>

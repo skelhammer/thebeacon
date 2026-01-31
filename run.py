@@ -12,6 +12,7 @@ app = create_app(config)
 if __name__ == "__main__":
     port = config.get('dashboard', {}).get('port', 5050)
     debug = config.get('dashboard', {}).get('debug', False)
+    host = '127.0.0.1' if debug else '0.0.0.0'
 
     extra_files = []
     if debug:
@@ -25,7 +26,7 @@ if __name__ == "__main__":
                 extra_files.append(str(f))
 
     app.run(
-        host='0.0.0.0',
+        host=host,
         port=port,
         debug=debug,
         extra_files=extra_files if extra_files else None

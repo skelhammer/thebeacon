@@ -1,5 +1,6 @@
 import time
 import logging
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 
@@ -44,6 +45,7 @@ class SuperOpsClient:
         self.agent_cache_ttl = agent_cfg.get('cache_ttl_seconds', 300)
 
         # Caches
+        self._cache_lock = threading.Lock()
         self._ticket_cache = None
         self._ticket_cache_time = 0
         self._agent_cache = None
@@ -88,23 +90,25 @@ class SuperOpsClient:
             list: Normalized ticket dictionaries.
         """
         now = time.time()
-        if not force and self._ticket_cache is not None:
-            if (now - self._ticket_cache_time) < self.ticket_cache_ttl:
-                return self._ticket_cache
+        with self._cache_lock:
+            if not force and self._ticket_cache is not None:
+                if (now - self._ticket_cache_time) < self.ticket_cache_ttl:
+                    return self._ticket_cache
 
         try:
             all_tickets = self._fetch_all_ticket_pages()
             normalized = [self._normalize_ticket(t) for t in all_tickets]
-            self._ticket_cache = normalized
-            self._ticket_cache_time = time.time()
+            with self._cache_lock:
+                self._ticket_cache = normalized
+                self._ticket_cache_time = time.time()
             logger.info(f"Fetched {len(normalized)} active tickets from SuperOps")
             return normalized
         except Exception as e:
             logger.error(f"Failed to fetch tickets from SuperOps: {e}")
-            # Return stale cache if available
-            if self._ticket_cache is not None:
-                logger.warning("Returning stale cached tickets")
-                return self._ticket_cache
+            with self._cache_lock:
+                if self._ticket_cache is not None:
+                    logger.warning("Returning stale cached tickets")
+                    return self._ticket_cache
             return []
 
     def _fetch_all_ticket_pages(self):
@@ -204,9 +208,10 @@ class SuperOpsClient:
             dict: {userId: name} mapping of active technicians.
         """
         now = time.time()
-        if not force and self._agent_cache is not None:
-            if (now - self._agent_cache_time) < self.agent_cache_ttl:
-                return self._agent_cache
+        with self._cache_lock:
+            if not force and self._agent_cache is not None:
+                if (now - self._agent_cache_time) < self.agent_cache_ttl:
+                    return self._agent_cache
 
         try:
             query = """
@@ -251,14 +256,16 @@ class SuperOpsClient:
                     logger.warning("Hit technician pagination safety limit (50 pages)")
                     break
 
-            self._agent_cache = mapping
-            self._agent_cache_time = time.time()
+            with self._cache_lock:
+                self._agent_cache = mapping
+                self._agent_cache_time = time.time()
             logger.info(f"Fetched {len(mapping)} active technicians from SuperOps")
             return mapping
         except Exception as e:
             logger.error(f"Failed to fetch technicians: {e}")
-            if self._agent_cache is not None:
-                return self._agent_cache
+            with self._cache_lock:
+                if self._agent_cache is not None:
+                    return self._agent_cache
             return {}
 
     def check_requester_replies(self, tickets, s2_statuses):
@@ -326,10 +333,11 @@ class SuperOpsClient:
                     tid, ut, cached_entry = futures[future]
                     try:
                         has_reply = future.result()
-                        self._conversation_cache[tid] = {
-                            'updated_time': ut,
-                            'has_req_reply': has_reply,
-                        }
+                        with self._cache_lock:
+                            self._conversation_cache[tid] = {
+                                'updated_time': ut,
+                                'has_req_reply': has_reply,
+                            }
                         if has_reply:
                             reply_ticket_ids.add(tid)
                     except Exception as e:
@@ -338,13 +346,14 @@ class SuperOpsClient:
                             reply_ticket_ids.add(tid)
 
         # Clean stale cache entries for tickets no longer in the full ticket cache
-        if self._ticket_cache is not None:
-            all_ticket_ids = set(t.get('ticket_id') for t in self._ticket_cache if t.get('ticket_id'))
-            stale_ids = set(self._conversation_cache.keys()) - all_ticket_ids
-            for stale_id in stale_ids:
-                del self._conversation_cache[stale_id]
-            if stale_ids:
-                logger.debug(f"Cleaned {len(stale_ids)} stale conversation cache entries")
+        with self._cache_lock:
+            if self._ticket_cache is not None:
+                all_ticket_ids = set(t.get('ticket_id') for t in self._ticket_cache if t.get('ticket_id'))
+                stale_ids = set(self._conversation_cache.keys()) - all_ticket_ids
+                for stale_id in stale_ids:
+                    del self._conversation_cache[stale_id]
+                if stale_ids:
+                    logger.debug(f"Cleaned {len(stale_ids)} stale conversation cache entries")
 
         return reply_ticket_ids
 
