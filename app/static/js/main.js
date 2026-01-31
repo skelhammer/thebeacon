@@ -39,7 +39,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function convertAllUTCToLocal(isoTimestamp) {
         const dashboardTimeLocalEl = document.getElementById('dashboard-generated-time');
         if (dashboardTimeLocalEl && isoTimestamp) {
-            dashboardTimeLocalEl.textContent = formatToLocal(isoTimestamp);
+            let parsable = isoTimestamp.trim().replace(' ', 'T');
+            if (!parsable.endsWith('Z') && !parsable.match(/[+-]\d{2}:\d{2}$/)) parsable += 'Z';
+            const d = new Date(parsable);
+            if (!isNaN(d.getTime())) {
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const yy = String(d.getFullYear()).slice(-2);
+                const hh = String(d.getHours()).padStart(2, '0');
+                const min = String(d.getMinutes()).padStart(2, '0');
+                dashboardTimeLocalEl.textContent = `${mm}/${dd}/${yy} ${hh}:${min}`;
+            } else {
+                dashboardTimeLocalEl.textContent = formatToLocal(isoTimestamp);
+            }
         }
         document.querySelectorAll('.datetime-container').forEach(el => {
             const utcTimestamp = el.getAttribute('data-utc-datetime');
@@ -87,11 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
         <tr>
             <td><a href="${TICKET_URL_TEMPLATE.replace('{ticket_id}', item.ticket_id || '')}" target="_blank">${itemId}</a></td>
-            <td>
-                <a href="#" class="modal-trigger" data-item-id="${itemId}" data-section-prefix="${sectionIdPrefix}">
-                    ${subjectText}
-                </a>
-            </td>
+            <td>${subjectText}</td>
             <td>${requesterName}</td>
             <td>${agentName}</td>
             <td><span class="priority-badge priority-badge--${priorityText.toLowerCase().replace(/\s+/g, '-')}">${priorityText}</span></td>
@@ -108,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tableBody = document.getElementById(`${sectionIdPrefix}-items-body`);
         const noItemsMessageElement = document.getElementById(`${sectionIdPrefix}-no-items-message`);
         const sectionItemCountElement = document.getElementById(`${sectionIdPrefix}-item-count`);
+        const tableWrapper = tableBody ? tableBody.closest('.table-wrapper') : null;
 
         if (!tableBody || !noItemsMessageElement || !sectionItemCountElement) return;
 
@@ -117,9 +126,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const html = items.map(item => renderItemRow(item, sectionIdPrefix)).join('');
             tableBody.innerHTML = html;
             noItemsMessageElement.style.display = 'none';
+            if (tableWrapper) tableWrapper.style.display = '';
         } else {
             tableBody.innerHTML = '';
             noItemsMessageElement.style.display = 'block';
+            if (tableWrapper) tableWrapper.style.display = 'none';
         }
     }
 
@@ -300,134 +311,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Modal Logic ---
-    const modal = document.getElementById('ticket-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalDetailsGrid = document.getElementById('modal-details-grid');
-    const modalDescription = document.getElementById('modal-description');
-    const closeModalBtn = modal ? modal.querySelector('.modal__close') : null;
-
-    function createDetailRow(label, value) {
-        return `
-            <div class="modal__detail-row">
-                <span class="modal__detail-label">${label}</span>
-                <span class="modal__detail-value">${value || 'N/A'}</span>
-            </div>
-        `;
-    }
-
-    function openModal(item) {
-        if (!item || !modal) return;
-
-        modalTitle.textContent = `Ticket #${item.id}: ${item.subject}`;
-
-        let detailsHtml = '';
-        detailsHtml += createDetailRow('Requester', item.requester_name);
-        detailsHtml += createDetailRow('Agent', item.agent_name || 'Unassigned');
-        detailsHtml += createDetailRow('Priority', `<span class="priority-badge priority-badge--${(item.priority_text || '').toLowerCase()}">${item.priority_text}</span>`);
-        detailsHtml += createDetailRow('Status', item.sla_text || 'N/A');
-        detailsHtml += createDetailRow('Created', `${item.created_days_old} (${formatToLocal(item.created_at_str)})`);
-        detailsHtml += createDetailRow('Last Updated', `${item.updated_friendly} (${formatToLocal(item.updated_at_str)})`);
-
-        modalDetailsGrid.innerHTML = detailsHtml;
-
-        // Sanitize and display description
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = item.description_text || "No description provided.";
-        modalDescription.textContent = tempDiv.textContent || tempDiv.innerText || "";
-
-        modal.classList.add('active');
-    }
-
-    function closeModal() {
-        if (modal) {
-            modal.classList.remove('active');
-        }
-    }
-
-    document.addEventListener('click', function(event) {
-        const trigger = event.target.closest('.modal-trigger');
-        if (trigger) {
-            event.preventDefault();
-            const itemId = trigger.dataset.itemId;
-            const sectionPrefix = trigger.dataset.sectionPrefix;
-            const itemArray = window.currentApiData[`${sectionPrefix}_items`] || [];
-            const item = itemArray.find(i => String(i.id) === String(itemId));
-            openModal(item);
-        }
-    });
-
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', closeModal);
-    }
-
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
-
-    window.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && modal && modal.classList.contains('active')) {
-            closeModal();
-        }
-    });
-
     // Initial data fetch and auto-refresh
     if (AUTO_REFRESH_INTERVAL_MS > 0) {
         setTimeout(refreshTicketData, 100);
         setInterval(refreshTicketData, AUTO_REFRESH_INTERVAL_MS);
     } else {
         setTimeout(refreshTicketData, 100);
-    }
-
-    // --- Manual Refresh Button ---
-    const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', async () => {
-            refreshBtn.disabled = true;
-            refreshBtn.textContent = 'Refreshing...';
-            await refreshTicketData();
-            refreshBtn.textContent = 'Refresh';
-            refreshBtn.disabled = false;
-        });
-    }
-
-    // --- Force Refresh Button (invalidates server cache) ---
-    const forceRefreshBtn = document.getElementById('force-refresh-btn');
-    const refreshStatus = document.getElementById('refresh-status');
-
-    if (forceRefreshBtn) {
-        forceRefreshBtn.addEventListener('click', async () => {
-            forceRefreshBtn.disabled = true;
-            forceRefreshBtn.textContent = 'Refreshing...';
-            if (refreshStatus) refreshStatus.textContent = 'Fetching from SuperOps...';
-
-            try {
-                const response = await fetch('/api/refresh', {
-                    method: 'POST',
-                    credentials: 'same-origin'
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    if (refreshStatus) refreshStatus.textContent = `Refreshed (${data.ticket_count} tickets)`;
-                    // Now refresh the displayed data
-                    await refreshTicketData();
-                    setTimeout(() => {
-                        if (refreshStatus) refreshStatus.textContent = '';
-                    }, 3000);
-                } else {
-                    if (refreshStatus) refreshStatus.textContent = data.error || 'Refresh failed';
-                }
-            } catch (error) {
-                console.error('Force refresh error:', error);
-                if (refreshStatus) refreshStatus.textContent = 'Network error';
-            }
-
-            forceRefreshBtn.textContent = 'Force Refresh';
-            forceRefreshBtn.disabled = false;
-        });
     }
 });

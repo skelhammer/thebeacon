@@ -4,6 +4,8 @@
 
 {% macro dashboard_body() %}
 
+<h1 class="page-header__title" style="text-align: center; margin-bottom: 1rem;">{{ app_name }}</h1>
+
 {% if error_message %}
 <div class="alert alert--error u-mb-3" id="error-banner">
     <strong>Error:</strong> {{ error_message }}
@@ -14,7 +16,15 @@
 </div>
 
 <div class="card u-mb-3">
-    <div class="card__header" style="justify-content: center; position: relative;">
+    <div class="card__header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <select id="agent-filter" class="form-group__select" style="max-width: 200px;">
+                <option value="">All Agents</option>
+                {% for agent_id, agent_name in agent_mapping.items() %}
+                    <option value="{{ agent_id }}" {% if agent_id|string == selected_agent_id|string %}selected{% endif %}>{{ agent_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <div class="ticket-count-display">
             <span class="ticket-count-label">Total Active</span>
             <div class="ticket-count-wrapper">
@@ -23,28 +33,10 @@
                 <span class="siren siren--right" id="siren-right"></span>
             </div>
         </div>
-        <div style="position: absolute; right: 2rem; text-align: right;">
+        <div style="text-align: right;">
             <span class="u-text-small u-text-secondary">Last Refresh:</span>
             <br>
             <strong id="dashboard-generated-time" style="font-size: 1.25rem;">Loading...</strong>
-        </div>
-    </div>
-    <div class="card__body">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0;">
-                <label for="agent-filter" class="form-group__label" style="margin-bottom: 0;">Filter by Agent:</label>
-                <select id="agent-filter" class="form-group__select" style="flex: 1; max-width: 200px;">
-                    <option value="">All Agents</option>
-                    {% for agent_id, agent_name in agent_mapping.items() %}
-                        <option value="{{ agent_id }}" {% if agent_id|string == selected_agent_id|string %}selected{% endif %}>{{ agent_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <button id="refresh-btn" class="btn btn--sm btn--outline" title="Refresh ticket data">Refresh</button>
-                <button id="force-refresh-btn" class="btn btn--sm btn--primary" title="Force refresh from SuperOps API">Force Refresh</button>
-                <span id="refresh-status" class="u-text-small u-text-secondary"></span>
-            </div>
         </div>
     </div>
 </div>
@@ -157,20 +149,6 @@
     </div>
 </div>
 
-<div id="ticket-modal" class="modal">
-    <div class="modal__dialog">
-        <div class="modal__header">
-            <h3 class="modal__title" id="modal-title">Ticket Details</h3>
-            <button class="modal__close">&times;</button>
-        </div>
-        <div class="modal__body">
-            <div id="modal-details-grid"></div>
-            <div class="section-divider u-my-1"></div>
-            <h4>Description</h4>
-            <div id="modal-description"></div>
-        </div>
-    </div>
-</div>
 {% endmacro %}
 
 {% block content %}

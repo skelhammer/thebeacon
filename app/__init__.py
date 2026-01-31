@@ -53,7 +53,11 @@ def create_app(config):
 
     # Context processor for templates
     dashboard_cfg = config.get('dashboard', {})
-    app_name = dashboard_cfg.get('app_name', 'TheBeacon')
+    company_name = dashboard_cfg.get('company_name', '')
+    if company_name:
+        app_name = f"The {company_name} Beacon"
+    else:
+        app_name = dashboard_cfg.get('app_name', 'The Beacon')
 
     @app.context_processor
     def inject_globals():
@@ -204,24 +208,6 @@ def create_app(config):
             'agent_mapping': agent_mapping,
             'error': error,
         })
-
-    @app.route('/api/refresh', methods=['POST'])
-    @limiter.limit("5 per minute")
-    def api_refresh():
-        """Invalidate cache and re-fetch from SuperOps."""
-        try:
-            _client.invalidate_cache()
-            tickets = _client.fetch_tickets(force=True)
-            return jsonify({
-                'success': True,
-                'ticket_count': len(tickets),
-            })
-        except Exception as e:
-            logger.error(f"Force refresh failed: {e}")
-            return jsonify({
-                'success': False,
-                'error': str(e),
-            }), 500
 
     @app.route('/health')
     @limiter.exempt

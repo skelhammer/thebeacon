@@ -10,7 +10,135 @@
         theme: 'thebeacon-theme',
         colorTheme: 'thebeacon-color-theme',
         sidebarCollapsed: 'thebeacon-sidebar-collapsed',
+        easterEggsUnlocked: 'thebeacon-easter-eggs-unlocked',
     };
+
+    // --- Easter Egg Unlock (tap title 5 times) ---
+    (function() {
+        var picker = document.getElementById('color-theme-picker');
+        if (!picker) return;
+
+        // If already unlocked, reveal immediately
+        if (localStorage.getItem(STORAGE_KEYS.easterEggsUnlocked) === 'true') {
+            picker.classList.add('theme-picker--unlocked');
+            return;
+        }
+
+        // Also auto-unlock if an easter egg theme is already active
+        var currentColor = localStorage.getItem(STORAGE_KEYS.colorTheme) || '';
+        if (currentColor === 'matrix' || currentColor === 'bee') {
+            picker.classList.add('theme-picker--unlocked');
+            localStorage.setItem(STORAGE_KEYS.easterEggsUnlocked, 'true');
+            return;
+        }
+
+        var tapCount = 0;
+        var tapTimer = null;
+        var targets = document.querySelectorAll('.page-header__title, .side-panel__title');
+
+        targets.forEach(function(el) {
+            el.style.cursor = 'default';
+            el.addEventListener('click', function() {
+                tapCount++;
+                if (tapTimer) clearTimeout(tapTimer);
+                tapTimer = setTimeout(function() { tapCount = 0; }, 3000);
+
+                if (tapCount >= 5) {
+                    tapCount = 0;
+                    picker.classList.add('theme-picker--unlocked');
+                    localStorage.setItem(STORAGE_KEYS.easterEggsUnlocked, 'true');
+
+                    // Show toast
+                    var toast = document.createElement('div');
+                    toast.className = 'easter-egg-toast';
+                    toast.textContent = 'Developer themes unlocked!';
+                    document.body.appendChild(toast);
+                    setTimeout(function() { toast.remove(); }, 3000);
+                }
+            });
+        });
+    })();
+
+    // --- Konami Code Listener ---
+    var konamiCallback = null;
+    (function() {
+        var konamiSeq = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+        var konamiPos = 0;
+        document.addEventListener('keydown', function(e) {
+            if (e.key === konamiSeq[konamiPos]) {
+                konamiPos++;
+                if (konamiPos === konamiSeq.length) {
+                    konamiPos = 0;
+                    if (konamiCallback) {
+                        konamiCallback();
+                    } else {
+                        // Default theme: disco mode
+                        triggerDisco();
+                    }
+                }
+            } else {
+                konamiPos = 0;
+            }
+        });
+    })();
+
+    // --- Disco Mode (default Konami easter egg) ---
+    function triggerDisco() {
+        var colors = ['#ff0000', '#ff8800', '#ffff00', '#00ff00', '#0088ff', '#8800ff', '#ff00ff'];
+
+        // Full-screen overlay for color flash (CSS variables block inline bg)
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99998;pointer-events:none;opacity:0.4;transition:background-color 0.12s;';
+        document.body.appendChild(overlay);
+
+        var cards = document.querySelectorAll('.card');
+        cards.forEach(function(c) { c.style.transition = 'transform 0.15s'; });
+
+        var count = 0;
+        var discoTimer = setInterval(function() {
+            overlay.style.backgroundColor = colors[count % colors.length];
+            cards.forEach(function(c, i) {
+                var angle = ((count + i) % 2 === 0) ? '2deg' : '-2deg';
+                var scale = ((count + i) % 3 === 0) ? '1.02' : '0.98';
+                c.style.transform = 'rotate(' + angle + ') scale(' + scale + ')';
+            });
+            count++;
+            if (count > 30) {
+                clearInterval(discoTimer);
+                overlay.remove();
+                cards.forEach(function(c) {
+                    c.style.transform = '';
+                    c.style.transition = '';
+                });
+            }
+        }, 150);
+    }
+
+    // --- Ticket Count Spin (click 10 times) ---
+    (function() {
+        var countEl = document.getElementById('total-active-items-count');
+        if (!countEl) return;
+        var clickCount = 0;
+        var clickTimer = null;
+        countEl.style.cursor = 'default';
+        countEl.addEventListener('click', function() {
+            clickCount++;
+            if (clickTimer) clearTimeout(clickTimer);
+            clickTimer = setTimeout(function() { clickCount = 0; }, 4000);
+            if (clickCount >= 10) {
+                clickCount = 0;
+                var rows = document.querySelectorAll('.card, .ticket-row, tr');
+                rows.forEach(function(row, i) {
+                    row.style.transition = 'transform 0.5s ease';
+                    row.style.transform = 'rotate(360deg)';
+                    setTimeout(function() {
+                        row.style.transform = '';
+                        setTimeout(function() { row.style.transition = ''; }, 500);
+                    }, 1500 + i * 50);
+                });
+            }
+        });
+    })();
 
     // --- Matrix Rain Easter Egg ---
     var matrixTimerId = null;
@@ -18,6 +146,7 @@
     var matrixEasterEggTimers = [];
     var matrixClickHandler = null;
     var matrixMoveHandler = null;
+    var matrixSpoonHandler = null;
 
     function handleMatrixRain(active) {
         var canvas = document.getElementById('matrix-rain');
@@ -44,6 +173,11 @@
                 document.removeEventListener('mousemove', matrixMoveHandler);
                 matrixMoveHandler = null;
             }
+            if (matrixSpoonHandler) {
+                document.removeEventListener('keypress', matrixSpoonHandler);
+                matrixSpoonHandler = null;
+            }
+            konamiCallback = null;
             // Remove leftover easter egg elements
             document.querySelectorAll('.matrix-quote, .matrix-click-char, .matrix-trail-char, .matrix-click-overlay').forEach(function(el) { el.remove(); });
             var clearCtx = canvas.getContext('2d');
@@ -117,10 +251,16 @@
                 // Advance the drop
                 col.y += col.speed;
 
-                // Reset when the column falls off screen
-                if (col.y * fontSize > canvas.height + col.trailLen * fontSize) {
+                // Reset when the column falls off screen (bottom or top)
+                var maxY = canvas.height / fontSize + col.trailLen;
+                if (col.speed > 0 && col.y > maxY) {
                     col.y = Math.random() * -20;
                     col.speed = 0.4 + Math.random() * 0.6;
+                    col.trailLen = 8 + Math.floor(Math.random() * 20);
+                    col.lastCell = Math.floor(col.y);
+                } else if (col.speed < 0 && col.y < -col.trailLen) {
+                    col.y = canvas.height / fontSize + Math.random() * 20;
+                    col.speed = -(0.4 + Math.random() * 0.6);
                     col.trailLen = 8 + Math.floor(Math.random() * 20);
                     col.lastCell = Math.floor(col.y);
                 }
@@ -265,6 +405,47 @@
             }, 800);
         };
         document.addEventListener('mousemove', matrixMoveHandler);
+
+        // --- Konami: Invert Gravity ---
+        konamiCallback = function() {
+            // Flip all column speeds negative (rain goes up)
+            for (var i = 0; i < columns.length; i++) {
+                columns[i].speed = -(0.4 + Math.random() * 0.6);
+            }
+            // After 10 seconds, flip back to normal
+            var revertTimer = setTimeout(function() {
+                for (var i = 0; i < columns.length; i++) {
+                    columns[i].speed = 0.4 + Math.random() * 0.6;
+                    columns[i].y = Math.random() * -20;
+                    columns[i].lastCell = Math.floor(columns[i].y);
+                }
+            }, 10000);
+            matrixEasterEggTimers.push(revertTimer);
+        };
+
+        // --- Type "spoon": There Is No Spoon ---
+        var spoonBuffer = '';
+        matrixSpoonHandler = function(e) {
+            spoonBuffer += e.key.toLowerCase();
+            if (spoonBuffer.length > 10) spoonBuffer = spoonBuffer.slice(-10);
+            if (spoonBuffer.indexOf('spoon') !== -1) {
+                spoonBuffer = '';
+                // Full-screen overlay with the quote (no DOM mutation)
+                var overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;pointer-events:none;opacity:0;transition:opacity 0.3s;';
+                overlay.innerHTML = '<div style="font-family:Courier New,monospace;font-size:3rem;color:#00ff41;text-shadow:0 0 20px #00ff41,0 0 40px rgba(0,255,65,0.3);text-align:center;line-height:1.6;">There is no spoon</div>';
+                document.body.appendChild(overlay);
+                // Fade in
+                requestAnimationFrame(function() { overlay.style.opacity = '1'; });
+                // Fade out after 3s
+                var revertTimer = setTimeout(function() {
+                    overlay.style.opacity = '0';
+                    setTimeout(function() { overlay.remove(); }, 300);
+                }, 3000);
+                matrixEasterEggTimers.push(revertTimer);
+            }
+        };
+        document.addEventListener('keypress', matrixSpoonHandler);
     }
 
     // --- Bee-con Name Swap ---
@@ -273,25 +454,21 @@
     function handleBeeconName(active) {
         var sidebarTitle = document.querySelector('.side-panel__title');
         var pageTitle = document.querySelector('.page-header__title');
-        var footerEl = document.querySelector('.version-footer__text');
-        if (!sidebarTitle) return;
+        if (!sidebarTitle && !pageTitle) return;
 
         // Capture the original name on first call
         if (!defaultAppName) {
-            defaultAppName = sidebarTitle.textContent;
+            defaultAppName = (sidebarTitle && sidebarTitle.textContent) || (pageTitle && pageTitle.textContent) || '';
         }
 
         var beeconName = defaultAppName.replace(/Beacon/i, 'Beecon');
         var fromName = active ? defaultAppName : beeconName;
         var toName = active ? beeconName : defaultAppName;
 
-        sidebarTitle.textContent = toName;
+        if (sidebarTitle) sidebarTitle.textContent = toName;
         document.title = document.title.replace(fromName, toName);
         if (pageTitle) {
             pageTitle.textContent = pageTitle.textContent.replace(fromName, toName);
-        }
-        if (footerEl) {
-            footerEl.textContent = footerEl.textContent.replace(fromName, toName);
         }
     }
 
@@ -534,6 +711,8 @@
         // ========================
         var _beeCursorX = null;
         var _beeCursorY = null;
+        var _beeFleeRadius = 120;
+        var _beeFleeForce = 8;
 
         var lastPollenTrailTime = 0;
 
@@ -728,13 +907,13 @@
                     }
                 }
 
-                // Cursor flee — gentle repulsion if within 120px
+                // Cursor flee — repulsion within radius
                 if (_beeCursorX !== null && _beeCursorY !== null) {
                     var cdx = x - _beeCursorX;
                     var cdy = y - _beeCursorY;
                     var cdist = Math.sqrt(cdx * cdx + cdy * cdy);
-                    if (cdist < 120 && cdist > 0) {
-                        var push = (120 - cdist) / 120 * 8;
+                    if (cdist < _beeFleeRadius && cdist > 0) {
+                        var push = (_beeFleeRadius - cdist) / _beeFleeRadius * _beeFleeForce;
                         x += (cdx / cdist) * push;
                         y += (cdy / cdist) * push;
                     }
@@ -986,13 +1165,14 @@
                     hb.style.top = (rand(50, H - 50)) + 'px';
                     document.body.appendChild(hb);
 
-                    // Each bee tracks its own crawl target
+                    // Each bee tracks its own crawl target (pick a hex cell)
+                    var startCell = pick(hexOffsets);
                     var beeObj = {
                         el: hb,
-                        cx: cx + rand(-40, 40),
-                        cy: cy + rand(-40, 40),
-                        crawlX: cx + rand(-40, 40),
-                        crawlY: cy + rand(-40, 40),
+                        cx: cx + startCell.x,
+                        cy: cy + startCell.y,
+                        crawlX: cx + startCell.x,
+                        crawlY: cy + startCell.y,
                         arrived: false,
                         nextCrawl: 0
                     };
@@ -1021,17 +1201,18 @@
                             obj.el.style.left = (curX + (tx - curX) * 0.03) + 'px';
                             obj.el.style.top = (curY + (ty - curY) * 0.03) + 'px';
                         } else {
-                            // Crawl around randomly near the hive
+                            // Crawl between hex cells
                             var now = Date.now();
                             if (now > obj.nextCrawl) {
-                                // Pick a new nearby target
-                                obj.crawlX = cx + rand(-60, 60);
-                                obj.crawlY = cy + rand(-60, 60);
-                                obj.nextCrawl = now + rand(1500, 4000);
+                                // Pick a random hex cell as next target
+                                var cell = pick(hexOffsets);
+                                obj.crawlX = cx + cell.x + rand(-10, 10);
+                                obj.crawlY = cy + cell.y + rand(-10, 10);
+                                obj.nextCrawl = now + rand(2000, 5000);
                             }
-                            // Slowly move toward crawl target
-                            obj.el.style.left = (curX + (obj.crawlX - curX) * 0.02) + 'px';
-                            obj.el.style.top = (curY + (obj.crawlY - curY) * 0.02) + 'px';
+                            // Slowly crawl toward target
+                            obj.el.style.left = (curX + (obj.crawlX - curX) * 0.005) + 'px';
+                            obj.el.style.top = (curY + (obj.crawlY - curY) * 0.005) + 'px';
                             // Flip based on direction
                             var dx = obj.crawlX - curX;
                             obj.el.style.transform = dx > 0 ? 'scaleX(-1)' : 'scaleX(1)';
@@ -1043,6 +1224,60 @@
             }
         }, 5000);
         beeTimers.push(idleCheckId);
+
+        // --- Konami: Unleash the Swarm ---
+        konamiCallback = function() {
+            var swarmCount = 100 + Math.floor(Math.random() * 51);
+            for (var i = 0; i < swarmCount; i++) {
+                (function(delay) {
+                    var t = setTimeout(function() {
+                        createBee({
+                            goingRight: Math.random() > 0.5,
+                            pattern: pick(['wave', 'drunken', 'zigzag', 'divebomb', 'loopy'])
+                        });
+                    }, delay);
+                    beeTimers.push(t);
+                })(i * rand(30, 120));
+            }
+        };
+
+    }
+
+    // --- MSP Gold Konami: BSOD ---
+    function handleGoldKonami(active) {
+        if (!active) {
+            if (konamiCallback === triggerBSOD) konamiCallback = null;
+            return;
+        }
+        konamiCallback = triggerBSOD;
+    }
+
+    function triggerBSOD() {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0078D7;z-index:999999;display:flex;flex-direction:column;justify-content:center;padding-left:10%;font-family:Segoe UI,sans-serif;color:white;cursor:default;';
+        overlay.innerHTML =
+            '<div style="font-size:7rem;margin-bottom:2rem;">:(</div>' +
+            '<div style="font-size:1.5rem;max-width:700px;line-height:1.8;margin-bottom:2rem;">' +
+            'Your device ran into a problem and needs to restart. We\'re just collecting some error info, and then we\'ll restart for you.</div>' +
+            '<div style="font-size:1.1rem;max-width:700px;margin-bottom:2.5rem;"><span id="bsod-pct">0</span>% complete</div>' +
+            '<div style="display:flex;align-items:flex-start;gap:1.2rem;max-width:700px;">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" width="80" height="80" style="flex-shrink:0;"><rect width="29" height="29" fill="white"/><path d="M0,0h1v1h-1zM1,0h1v1h-1zM2,0h1v1h-1zM3,0h1v1h-1zM4,0h1v1h-1zM5,0h1v1h-1zM6,0h1v1h-1zM10,0h1v1h-1zM15,0h1v1h-1zM17,0h1v1h-1zM18,0h1v1h-1zM19,0h1v1h-1zM22,0h1v1h-1zM23,0h1v1h-1zM24,0h1v1h-1zM25,0h1v1h-1zM26,0h1v1h-1zM27,0h1v1h-1zM28,0h1v1h-1zM0,1h1v1h-1zM6,1h1v1h-1zM8,1h1v1h-1zM9,1h1v1h-1zM10,1h1v1h-1zM13,1h1v1h-1zM14,1h1v1h-1zM15,1h1v1h-1zM16,1h1v1h-1zM17,1h1v1h-1zM18,1h1v1h-1zM20,1h1v1h-1zM22,1h1v1h-1zM28,1h1v1h-1zM0,2h1v1h-1zM2,2h1v1h-1zM3,2h1v1h-1zM4,2h1v1h-1zM6,2h1v1h-1zM8,2h1v1h-1zM14,2h1v1h-1zM17,2h1v1h-1zM19,2h1v1h-1zM20,2h1v1h-1zM22,2h1v1h-1zM24,2h1v1h-1zM25,2h1v1h-1zM26,2h1v1h-1zM28,2h1v1h-1zM0,3h1v1h-1zM2,3h1v1h-1zM3,3h1v1h-1zM4,3h1v1h-1zM6,3h1v1h-1zM9,3h1v1h-1zM12,3h1v1h-1zM15,3h1v1h-1zM16,3h1v1h-1zM22,3h1v1h-1zM24,3h1v1h-1zM25,3h1v1h-1zM26,3h1v1h-1zM28,3h1v1h-1zM0,4h1v1h-1zM2,4h1v1h-1zM3,4h1v1h-1zM4,4h1v1h-1zM6,4h1v1h-1zM8,4h1v1h-1zM9,4h1v1h-1zM10,4h1v1h-1zM12,4h1v1h-1zM15,4h1v1h-1zM17,4h1v1h-1zM18,4h1v1h-1zM22,4h1v1h-1zM24,4h1v1h-1zM25,4h1v1h-1zM26,4h1v1h-1zM28,4h1v1h-1zM0,5h1v1h-1zM6,5h1v1h-1zM8,5h1v1h-1zM10,5h1v1h-1zM12,5h1v1h-1zM13,5h1v1h-1zM14,5h1v1h-1zM15,5h1v1h-1zM16,5h1v1h-1zM17,5h1v1h-1zM18,5h1v1h-1zM19,5h1v1h-1zM22,5h1v1h-1zM28,5h1v1h-1zM0,6h1v1h-1zM1,6h1v1h-1zM2,6h1v1h-1zM3,6h1v1h-1zM4,6h1v1h-1zM5,6h1v1h-1zM6,6h1v1h-1zM8,6h1v1h-1zM10,6h1v1h-1zM12,6h1v1h-1zM14,6h1v1h-1zM16,6h1v1h-1zM18,6h1v1h-1zM20,6h1v1h-1zM22,6h1v1h-1zM23,6h1v1h-1zM24,6h1v1h-1zM25,6h1v1h-1zM26,6h1v1h-1zM27,6h1v1h-1zM28,6h1v1h-1zM8,7h1v1h-1zM10,7h1v1h-1zM11,7h1v1h-1zM14,7h1v1h-1zM17,7h1v1h-1zM18,7h1v1h-1zM19,7h1v1h-1zM0,8h1v1h-1zM1,8h1v1h-1zM3,8h1v1h-1zM6,8h1v1h-1zM7,8h1v1h-1zM11,8h1v1h-1zM12,8h1v1h-1zM14,8h1v1h-1zM22,8h1v1h-1zM23,8h1v1h-1zM24,8h1v1h-1zM26,8h1v1h-1zM27,8h1v1h-1zM0,9h1v1h-1zM1,9h1v1h-1zM2,9h1v1h-1zM4,9h1v1h-1zM9,9h1v1h-1zM11,9h1v1h-1zM12,9h1v1h-1zM13,9h1v1h-1zM14,9h1v1h-1zM16,9h1v1h-1zM17,9h1v1h-1zM18,9h1v1h-1zM20,9h1v1h-1zM22,9h1v1h-1zM25,9h1v1h-1zM28,9h1v1h-1zM2,10h1v1h-1zM3,10h1v1h-1zM4,10h1v1h-1zM5,10h1v1h-1zM6,10h1v1h-1zM7,10h1v1h-1zM8,10h1v1h-1zM11,10h1v1h-1zM12,10h1v1h-1zM16,10h1v1h-1zM17,10h1v1h-1zM19,10h1v1h-1zM20,10h1v1h-1zM22,10h1v1h-1zM25,10h1v1h-1zM26,10h1v1h-1zM27,10h1v1h-1zM1,11h1v1h-1zM2,11h1v1h-1zM7,11h1v1h-1zM8,11h1v1h-1zM9,11h1v1h-1zM10,11h1v1h-1zM11,11h1v1h-1zM12,11h1v1h-1zM13,11h1v1h-1zM15,11h1v1h-1zM18,11h1v1h-1zM23,11h1v1h-1zM24,11h1v1h-1zM26,11h1v1h-1zM27,11h1v1h-1zM1,12h1v1h-1zM4,12h1v1h-1zM5,12h1v1h-1zM6,12h1v1h-1zM8,12h1v1h-1zM10,12h1v1h-1zM11,12h1v1h-1zM13,12h1v1h-1zM17,12h1v1h-1zM19,12h1v1h-1zM20,12h1v1h-1zM21,12h1v1h-1zM22,12h1v1h-1zM25,12h1v1h-1zM27,12h1v1h-1zM28,12h1v1h-1zM0,13h1v1h-1zM1,13h1v1h-1zM2,13h1v1h-1zM5,13h1v1h-1zM9,13h1v1h-1zM11,13h1v1h-1zM15,13h1v1h-1zM17,13h1v1h-1zM19,13h1v1h-1zM21,13h1v1h-1zM23,13h1v1h-1zM1,14h1v1h-1zM2,14h1v1h-1zM4,14h1v1h-1zM6,14h1v1h-1zM7,14h1v1h-1zM9,14h1v1h-1zM10,14h1v1h-1zM11,14h1v1h-1zM13,14h1v1h-1zM14,14h1v1h-1zM16,14h1v1h-1zM17,14h1v1h-1zM18,14h1v1h-1zM20,14h1v1h-1zM21,14h1v1h-1zM25,14h1v1h-1zM26,14h1v1h-1zM27,14h1v1h-1zM28,14h1v1h-1zM3,15h1v1h-1zM4,15h1v1h-1zM5,15h1v1h-1zM7,15h1v1h-1zM8,15h1v1h-1zM11,15h1v1h-1zM13,15h1v1h-1zM14,15h1v1h-1zM15,15h1v1h-1zM16,15h1v1h-1zM17,15h1v1h-1zM18,15h1v1h-1zM19,15h1v1h-1zM20,15h1v1h-1zM22,15h1v1h-1zM25,15h1v1h-1zM27,15h1v1h-1zM1,16h1v1h-1zM2,16h1v1h-1zM3,16h1v1h-1zM4,16h1v1h-1zM5,16h1v1h-1zM6,16h1v1h-1zM7,16h1v1h-1zM10,16h1v1h-1zM12,16h1v1h-1zM13,16h1v1h-1zM17,16h1v1h-1zM19,16h1v1h-1zM20,16h1v1h-1zM21,16h1v1h-1zM23,16h1v1h-1zM27,16h1v1h-1zM1,17h1v1h-1zM3,17h1v1h-1zM7,17h1v1h-1zM10,17h1v1h-1zM12,17h1v1h-1zM16,17h1v1h-1zM18,17h1v1h-1zM22,17h1v1h-1zM23,17h1v1h-1zM25,17h1v1h-1zM28,17h1v1h-1zM0,18h1v1h-1zM2,18h1v1h-1zM4,18h1v1h-1zM6,18h1v1h-1zM11,18h1v1h-1zM12,18h1v1h-1zM14,18h1v1h-1zM20,18h1v1h-1zM21,18h1v1h-1zM22,18h1v1h-1zM23,18h1v1h-1zM27,18h1v1h-1zM28,18h1v1h-1zM5,19h1v1h-1zM8,19h1v1h-1zM9,19h1v1h-1zM10,19h1v1h-1zM12,19h1v1h-1zM15,19h1v1h-1zM17,19h1v1h-1zM19,19h1v1h-1zM22,19h1v1h-1zM27,19h1v1h-1zM28,19h1v1h-1zM0,20h1v1h-1zM3,20h1v1h-1zM5,20h1v1h-1zM6,20h1v1h-1zM8,20h1v1h-1zM9,20h1v1h-1zM10,20h1v1h-1zM13,20h1v1h-1zM14,20h1v1h-1zM15,20h1v1h-1zM20,20h1v1h-1zM21,20h1v1h-1zM22,20h1v1h-1zM23,20h1v1h-1zM24,20h1v1h-1zM26,20h1v1h-1zM8,21h1v1h-1zM9,21h1v1h-1zM10,21h1v1h-1zM11,21h1v1h-1zM13,21h1v1h-1zM17,21h1v1h-1zM19,21h1v1h-1zM20,21h1v1h-1zM24,21h1v1h-1zM26,21h1v1h-1zM27,21h1v1h-1zM28,21h1v1h-1zM0,22h1v1h-1zM1,22h1v1h-1zM2,22h1v1h-1zM3,22h1v1h-1zM4,22h1v1h-1zM5,22h1v1h-1zM6,22h1v1h-1zM8,22h1v1h-1zM9,22h1v1h-1zM10,22h1v1h-1zM14,22h1v1h-1zM17,22h1v1h-1zM18,22h1v1h-1zM20,22h1v1h-1zM22,22h1v1h-1zM24,22h1v1h-1zM27,22h1v1h-1zM0,23h1v1h-1zM6,23h1v1h-1zM10,23h1v1h-1zM13,23h1v1h-1zM16,23h1v1h-1zM18,23h1v1h-1zM20,23h1v1h-1zM24,23h1v1h-1zM25,23h1v1h-1zM26,23h1v1h-1zM28,23h1v1h-1zM0,24h1v1h-1zM2,24h1v1h-1zM3,24h1v1h-1zM4,24h1v1h-1zM6,24h1v1h-1zM9,24h1v1h-1zM12,24h1v1h-1zM17,24h1v1h-1zM20,24h1v1h-1zM21,24h1v1h-1zM22,24h1v1h-1zM23,24h1v1h-1zM24,24h1v1h-1zM0,25h1v1h-1zM2,25h1v1h-1zM3,25h1v1h-1zM4,25h1v1h-1zM6,25h1v1h-1zM8,25h1v1h-1zM9,25h1v1h-1zM10,25h1v1h-1zM11,25h1v1h-1zM12,25h1v1h-1zM14,25h1v1h-1zM19,25h1v1h-1zM22,25h1v1h-1zM24,25h1v1h-1zM25,25h1v1h-1zM26,25h1v1h-1zM27,25h1v1h-1zM0,26h1v1h-1zM2,26h1v1h-1zM3,26h1v1h-1zM4,26h1v1h-1zM6,26h1v1h-1zM10,26h1v1h-1zM12,26h1v1h-1zM17,26h1v1h-1zM18,26h1v1h-1zM19,26h1v1h-1zM21,26h1v1h-1zM24,26h1v1h-1zM25,26h1v1h-1zM26,26h1v1h-1zM28,26h1v1h-1zM0,27h1v1h-1zM6,27h1v1h-1zM8,27h1v1h-1zM12,27h1v1h-1zM13,27h1v1h-1zM14,27h1v1h-1zM16,27h1v1h-1zM17,27h1v1h-1zM20,27h1v1h-1zM24,27h1v1h-1zM27,27h1v1h-1zM0,28h1v1h-1zM1,28h1v1h-1zM2,28h1v1h-1zM3,28h1v1h-1zM4,28h1v1h-1zM5,28h1v1h-1zM6,28h1v1h-1zM8,28h1v1h-1zM11,28h1v1h-1zM12,28h1v1h-1zM13,28h1v1h-1zM14,28h1v1h-1zM15,28h1v1h-1zM16,28h1v1h-1zM17,28h1v1h-1zM18,28h1v1h-1zM20,28h1v1h-1zM23,28h1v1h-1zM24,28h1v1h-1zM27,28h1v1h-1z" fill="black"/></svg>' +
+            '<div style="font-size:0.85rem;line-height:1.6;opacity:0.9;">' +
+            'For more information about this issue and possible fixes, visit<br>https://www.windows.com/stopcode<br><br>' +
+            'If you call a support person, give them this info:<br>Stop code: HAVE_YOU_TRIED_TURNING_IT_OFF_AND_ON_AGAIN</div></div>';
+        document.body.appendChild(overlay);
+
+        var pct = 0;
+        var pctEl = overlay.querySelector('#bsod-pct');
+        var bsodTimer = setInterval(function() {
+            pct += Math.floor(Math.random() * 12) + 3;
+            if (pct > 100) pct = 100;
+            pctEl.textContent = pct;
+            if (pct >= 100) {
+                clearInterval(bsodTimer);
+                setTimeout(function() { overlay.remove(); }, 1500);
+            }
+        }, 500);
     }
 
     // --- Dark/Light Toggle ---
@@ -1091,12 +1326,14 @@
             handleMatrixRain(color === 'matrix');
             handleBeeAnimation(color === 'bee');
             handleBeeconName(color === 'bee');
+            handleGoldKonami(color === 'gold');
         });
 
         // Initialize Easter eggs on page load
         handleMatrixRain(currentColor === 'matrix');
         handleBeeAnimation(currentColor === 'bee');
         handleBeeconName(currentColor === 'bee');
+        handleGoldKonami(currentColor === 'gold');
     }
 
     // --- Sidebar Collapse Toggle ---

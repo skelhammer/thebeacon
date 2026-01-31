@@ -61,6 +61,7 @@ alert_thresholds:
 dashboard:
   refresh_interval_seconds: 60
   app_name: "The Beacon"
+  company_name: ""            # e.g. "Acme" → "The Acme Beacon"
   port: 5050
 
 # Statuses to exclude from all queries (tickets in these statuses are never shown)

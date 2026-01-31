@@ -1429,131 +1429,6 @@ table td a:hover {
    ======================================== */
 
 /* Phase 2 Enhancement: Improved modal backdrop and animation */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        135deg,
-        rgba(0, 0, 0, 0.7) 0%,
-        rgba(0, 0, 0, 0.5) 100%
-    );
-    backdrop-filter: blur(8px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    visibility: hidden;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
-}
-
-.modal.active {
-    display: flex;
-    visibility: visible;
-    opacity: 1;
-    pointer-events: auto;
-}
-
-/* Phase 2 Enhancement: Enhanced dialog with border glow */
-.modal__dialog {
-    background: var(--color-surface);
-    border-radius: 16px;
-    max-width: 900px;
-    width: 90%;
-    max-height: 95vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(99, 102, 241, 0.1);
-    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative;
-    /* Hide scrollbars but allow scrolling */
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-.modal__dialog::-webkit-scrollbar {
-    display: none;
-}
-
-/* Subtle glow effect on dialog border */
-.modal__dialog::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: 16px;
-    padding: 2px;
-    background: linear-gradient(
-        135deg,
-        rgba(99, 102, 241, 0.2),
-        rgba(139, 92, 246, 0.1)
-    );
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0.5;
-    pointer-events: none;
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-30px) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-.modal__header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--color-border-light);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal__title {
-    margin: 0;
-    color: var(--color-text-primary);
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.modal__body {
-    padding: 1.5rem;
-}
-
-.modal__footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--color-border-light);
-    display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end;
-}
-
-.modal__close {
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--color-text-muted);
-    background: none;
-    border: none;
-    padding: 0.25rem;
-    line-height: 1;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-.modal__close:hover {
-    color: var(--color-text-primary);
-    background: var(--color-hover-bg);
-}
 
 /* ========================================
    Form Group Component
@@ -1715,23 +1590,10 @@ table td a:hover {
    ======================================== */
 
 .empty-state {
-    padding: 3rem 2rem;
+    padding: 0.75rem 1rem;
     text-align: center;
     color: var(--color-text-muted);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    min-height: 200px;
-    justify-content: center;
-    background: linear-gradient(
-        135deg,
-        rgba(99, 102, 241, 0.03) 0%,
-        rgba(139, 92, 246, 0.03) 100%
-    );
-    border-radius: 12px;
-    border: 2px dashed var(--color-border-medium);
-    margin: 1.5rem 0;
+    font-size: 0.875rem;
 }
 
 .empty-state__icon {
@@ -1910,34 +1772,6 @@ table td a:hover {
 /* Text secondary color */
 .u-text-secondary { color: var(--color-text-secondary); }
 
-/* ========================================
-   Approval Modal Additional Styles
-   ======================================== */
-
-.modal__action {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 1rem 0;
-    color: var(--color-text-primary);
-}
-
-.modal__details {
-    background: var(--color-bg-secondary);
-    border: 1px solid var(--color-border-light);
-    border-radius: 10px;
-    padding: 1rem;
-    margin: 1rem 0;
-}
-
-.modal__detail {
-    margin: 0.5rem 0;
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-}
-
-.modal__detail strong {
-    color: var(--color-text-primary);
-}
 
 /* ========================================
    Beacon Ticket Dashboard Styles
@@ -2092,33 +1926,6 @@ table td a:hover {
     }
 }
 
-.modal__detail-row {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.modal__detail-label {
-    font-weight: 600;
-    font-size: 0.85em;
-    color: var(--color-text-secondary);
-}
-
-.modal__detail-value {
-    word-break: break-word;
-}
-
-/* Modal Description Styling */
-#modal-description {
-    background-color: var(--color-bg-secondary);
-    border-radius: 8px;
-    padding: 1rem;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: monospace;
-    max-height: 300px;
-    overflow-y: auto;
-}
 
 /* SLA Detail Text */
 .datetime-container small {
@@ -2153,7 +1960,7 @@ table td a:hover {
 }
 
 .ticket-count-number {
-    font-size: 2.5rem;
+    font-size: 4rem;
     font-weight: 700;
     line-height: 1;
     color: var(--color-text-primary);
@@ -2886,6 +2693,52 @@ html.sidebar-collapsed .side-panel__label {
 .theme-swatch.active {
     border-color: var(--color-text-primary);
     box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+/* Hidden easter egg swatches */
+.theme-swatch--hidden {
+    display: none;
+    opacity: 0;
+    transform: scale(0);
+}
+
+.theme-picker--unlocked .theme-swatch--hidden {
+    display: block;
+    animation: swatch-reveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes swatch-reveal {
+    0%   { opacity: 0; transform: scale(0); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Toast notification */
+.easter-egg-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-border-medium);
+    font-size: 0.85rem;
+    font-weight: 500;
+    z-index: 99999;
+    animation: toast-in 0.3s ease-out, toast-out 0.4s ease-in 2.6s forwards;
+    pointer-events: none;
+}
+
+@keyframes toast-in {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes toast-out {
+    0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
 }
 
 /* ========================================
