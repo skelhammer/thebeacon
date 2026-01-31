@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
             <td>${requesterName}</td>
             <td>${agentName}</td>
-            <td><span class="priority-badge priority-badge--${priorityText.toLowerCase()}">${priorityText}</span></td>
+            <td><span class="priority-badge priority-badge--${priorityText.toLowerCase().replace(/\s+/g, '-')}">${priorityText}</span></td>
             <td>
                 <span class="sla-status ${slaClass}">${slaText}</span>
                 ${slaDetailHtml}

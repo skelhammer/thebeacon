@@ -16,7 +16,8 @@ ticket_url_template: "https://YOUR_SUBDOMAIN.superops.ai/servicedesk/tickets/{ti
 views:
   helpdesk:
     display_name: "Helpdesk"
-    tech_group_ids: []  # Empty = show all tickets not in other views
+    tech_group_ids: []  # Empty = show all tickets (unless exclude list is set)
+    exclude_tech_group_ids: []  # Group IDs to exclude from this view
   pro-services:
     display_name: "Pro Services"
     tech_group_ids: []  # Add SuperOps tech group IDs here
@@ -59,7 +60,7 @@ alert_thresholds:
 # Dashboard settings
 dashboard:
   refresh_interval_seconds: 60
-  app_name: "TheBeacon"
+  app_name: "The Beacon"
   port: 5050
 
 # Statuses to exclude from all queries (tickets in these statuses are never shown)

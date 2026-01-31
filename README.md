@@ -15,7 +15,7 @@ No database required. No external service dependencies. Just a Flask app and you
 - **Sortable columns** - Click any column header to sort
 - **Ticket detail modal** - Click a ticket subject for details
 - **Dark/light mode** - Toggle with persistent localStorage preference
-- **9 color themes** - Including Matrix rain and Bee easter eggs
+- **4 color themes** - Violet, Gold, Matrix rain, and Bee easter eggs
 - **Collapsible sidebar** - Hamburger menu toggle
 - **Alert thresholds** - Visual warnings when ticket count gets high (sirens at emergency level)
 

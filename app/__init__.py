@@ -59,15 +59,21 @@ def create_app(config):
     def inject_globals():
         return {
             'app_name': app_name,
-            'app_version': '1.0.3',
+            'app_version': '1.0.4',
         }
 
     # --- Helpers ---
 
     def _get_supported_views():
-        """Get view slug -> display_name mapping from config."""
+        """Get view slug -> {display_name, icon} mapping from config."""
         views = config.get('views', {})
-        return {slug: v.get('display_name', slug) for slug, v in views.items()}
+        return {
+            slug: {
+                'display_name': v.get('display_name', slug),
+                'icon': v.get('icon', 'ticket'),
+            }
+            for slug, v in views.items()
+        }
 
     def _get_default_view():
         """Get the first configured view slug."""
@@ -116,7 +122,8 @@ def create_app(config):
     def _render_dashboard(view_slug, agent_id):
         """Render the dashboard template for a view."""
         supported_views = _get_supported_views()
-        current_view_display = supported_views.get(view_slug, view_slug)
+        view_info = supported_views.get(view_slug, {})
+        current_view_display = view_info.get('display_name', view_slug) if isinstance(view_info, dict) else view_slug
 
         s1, s2, s3, s4, agent_mapping, error = _get_tickets_for_view(
             view_slug, agent_id=agent_id
@@ -176,7 +183,7 @@ def create_app(config):
             return jsonify({"error": f"Unknown view: {view_slug}"}), 404
 
         agent_id = request.args.get('agent_id', type=int)
-        current_view_display = supported[view_slug]
+        current_view_display = supported[view_slug]['display_name']
 
         s1, s2, s3, s4, agent_mapping, error = _get_tickets_for_view(
             view_slug, agent_id=agent_id

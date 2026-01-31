@@ -54,48 +54,52 @@
         initCanvas();
         var numCols = Math.floor(canvas.width / colWidth);
 
-        // Each column tracks its drop position and speed
+        // Each column tracks its drop position, speed, and last drawn cell
         var columns = [];
         for (var i = 0; i < numCols; i++) {
+            var startY = Math.random() * -50;
             columns.push({
-                y: Math.random() * -50,               // stagger start positions
-                speed: 0.3 + Math.random() * 0.7,     // varying fall speed
+                y: startY,
+                speed: 0.4 + Math.random() * 0.6,
                 trailLen: 8 + Math.floor(Math.random() * 20),
+                lastCell: Math.floor(startY),          // track which cell was last drawn
             });
         }
 
         function draw() {
             // Semi-transparent black overlay creates the fade trail
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.font = fontSize + 'px monospace';
 
             for (var i = 0; i < columns.length; i++) {
                 var col = columns[i];
-                var x = i * colWidth;
-                var yPos = Math.floor(col.y) * fontSize;
-                var ch = chars[Math.floor(Math.random() * chars.length)];
+                var cell = Math.floor(col.y);
 
-                // Bright white-green head character
-                ctx.fillStyle = '#ceffce';
-                ctx.fillText(ch, x, yPos);
+                // Only draw when the drop has moved to a new cell
+                if (cell !== col.lastCell) {
+                    col.lastCell = cell;
+                    var x = i * colWidth;
+                    var yPos = cell * fontSize;
+                    var ch = chars[Math.floor(Math.random() * chars.length)];
 
-                // Slightly dimmer character just behind the head
-                if (col.y > 1) {
-                    var trailChar = chars[Math.floor(Math.random() * chars.length)];
-                    ctx.fillStyle = '#00ff41';
-                    ctx.fillText(trailChar, x, yPos - fontSize);
+                    // Single bright head character — the trail comes from
+                    // previous heads fading via the black overlay, not from
+                    // drawing extra characters behind
+                    ctx.fillStyle = '#aaffaa';
+                    ctx.fillText(ch, x, yPos);
                 }
 
                 // Advance the drop
                 col.y += col.speed;
 
-                // Reset when the column falls off screen (with random delay)
-                if (yPos > canvas.height + col.trailLen * fontSize) {
+                // Reset when the column falls off screen
+                if (col.y * fontSize > canvas.height + col.trailLen * fontSize) {
                     col.y = Math.random() * -20;
-                    col.speed = 0.3 + Math.random() * 0.7;
+                    col.speed = 0.4 + Math.random() * 0.6;
                     col.trailLen = 8 + Math.floor(Math.random() * 20);
+                    col.lastCell = Math.floor(col.y);
                 }
             }
         }
@@ -110,6 +114,34 @@
             }
         };
         window.addEventListener('resize', matrixResizeHandler);
+    }
+
+    // --- Bee-con Name Swap ---
+    var defaultAppName = '';
+
+    function handleBeeconName(active) {
+        var sidebarTitle = document.querySelector('.side-panel__title');
+        var pageTitle = document.querySelector('.page-header__title');
+        var footerEl = document.querySelector('.version-footer__text');
+        if (!sidebarTitle) return;
+
+        // Capture the original name on first call
+        if (!defaultAppName) {
+            defaultAppName = sidebarTitle.textContent;
+        }
+
+        var beeconName = defaultAppName.replace(/Beacon/i, 'Beecon');
+        var fromName = active ? defaultAppName : beeconName;
+        var toName = active ? beeconName : defaultAppName;
+
+        sidebarTitle.textContent = toName;
+        document.title = document.title.replace(fromName, toName);
+        if (pageTitle) {
+            pageTitle.textContent = pageTitle.textContent.replace(fromName, toName);
+        }
+        if (footerEl) {
+            footerEl.textContent = footerEl.textContent.replace(fromName, toName);
+        }
     }
 
     // --- Bee Easter Egg (the full experience) ---
@@ -421,74 +453,102 @@
             var startTime = Date.now();
             var flipBase = goingRight ? 'scaleX(-1)' : 'scaleX(1)';
             var pollenCounter = 0;
-            var lastPollenX = 0;
-            var lastPollenY = 0;
+            var lastPollenX = startX;
+            var lastPollenY = startY;
 
-            // Patterns that stay mid-screen need a longer fade-out
             var staysOnScreen = (patName === 'hover' || patName === 'waggle' || patName === 'pollinate');
-            var fadeOutStart = staysOnScreen ? 0.78 : 0.88;
-            var fadeOutLen = 1 - fadeOutStart;
-            var pollenCutoff = fadeOutStart - 0.05;
+
+            // For mid-screen patterns: when the pattern ends, fly off-screen
+            var exiting = false;
+            var exitStartTime = 0;
+            var exitStartX = 0;
+            var exitStartY = 0;
+            var exitGoingRight = Math.random() > 0.5;
+            var exitDuration = rand(2000, 3500);
 
             function animateBee() {
                 var elapsed = Date.now() - startTime;
                 var p = Math.min(elapsed / duration, 1);
+                var x, y, angle, flip;
 
-                if (p >= 1) {
-                    bee.remove();
-                    return;
-                }
+                if (exiting) {
+                    // Exit phase: fly off the nearest edge in a gentle arc
+                    var exitElapsed = Date.now() - exitStartTime;
+                    var ep = Math.min(exitElapsed / exitDuration, 1);
+                    var ease = ep * ep; // accelerate out
+                    var exitTargetX = exitGoingRight ? W + 100 : -100;
+                    x = exitStartX + (exitTargetX - exitStartX) * ease;
+                    y = exitStartY + Math.sin(ep * Math.PI) * -40; // slight upward arc
+                    angle = (exitGoingRight ? -10 : 10) * ep;
+                    flip = exitGoingRight ? 'scaleX(-1)' : 'scaleX(1)';
 
-                var pos = patterns[patName](p, cfg);
-                var y = clampY(pos.y);
-                var x = pos.x;
-
-                // Also remove if the bee has flown off-screen (for cross-screen patterns)
-                if (!staysOnScreen && p > 0.3) {
-                    if (x < -80 || x > W + 80) {
+                    if (x < -100 || x > W + 100) {
                         bee.remove();
                         return;
+                    }
+                } else if (p >= 1 && staysOnScreen) {
+                    // Pattern finished — start exit phase
+                    exiting = true;
+                    exitStartTime = Date.now();
+                    exitStartX = parseFloat(bee.style.left) || W / 2;
+                    exitStartY = parseFloat(bee.style.top) || H / 2;
+                    // Fly toward whichever edge is closer
+                    exitGoingRight = exitStartX < W / 2 ? false : true;
+                    requestAnimationFrame(animateBee);
+                    return;
+                } else if (p >= 1) {
+                    // Cross-screen pattern done (safety fallback)
+                    bee.remove();
+                    return;
+                } else {
+                    // Normal pattern flight
+                    var pos = patterns[patName](p, cfg);
+                    y = clampY(pos.y);
+                    x = pos.x;
+                    angle = pos.angle || 0;
+
+                    // Cross-screen bees: remove when off-screen
+                    if (!staysOnScreen && p > 0.15 && (x < -80 || x > W + 80)) {
+                        bee.remove();
+                        return;
+                    }
+
+                    // Flip based on movement for mid-screen patterns
+                    flip = flipBase;
+                    if (staysOnScreen) {
+                        var dx = x - lastPollenX;
+                        if (Math.abs(dx) > 2) {
+                            flip = dx > 0 ? 'scaleX(-1)' : 'scaleX(1)';
+                        }
                     }
                 }
 
                 bee.style.left = x + 'px';
-                bee.style.top = y + 'px';
+                bee.style.top = clampY(y) + 'px';
+                bee.style.transform = flip + ' rotate(' + (angle || 0) + 'deg)';
 
-                // For hover pattern, flip based on movement direction
-                var flip = flipBase;
-                if (patName === 'hover' || patName === 'pollinate' || patName === 'waggle') {
-                    var dx = x - lastPollenX;
-                    if (Math.abs(dx) > 2) {
-                        flip = dx > 0 ? 'scaleX(-1)' : 'scaleX(1)';
-                    }
+                // Quick fade-in only (no fade-out — bees exit by leaving the screen)
+                var p2 = elapsed / duration;
+                if (p2 < 0.06) {
+                    bee.style.opacity = String((p2 / 0.06) * 0.9);
+                } else {
+                    bee.style.opacity = '0.9';
                 }
 
-                bee.style.transform = flip + ' rotate(' + (pos.angle || 0) + 'deg)';
-
-                // Fade in/out — fully transparent at both ends
-                var fade = 1;
-                if (p < 0.06) fade = p / 0.06;
-                else if (p > fadeOutStart) fade = (1 - p) / fadeOutLen;
-                bee.style.opacity = String(fade * 0.9);
-
-                // Drop pollen particles (stop before fade-out to avoid ghost trails)
-                if (p < pollenCutoff) {
-                    pollenCounter++;
-                    if (pollenCounter % 6 === 0) {
-                        var dist = Math.sqrt(Math.pow(x - lastPollenX, 2) + Math.pow(y - lastPollenY, 2));
-                        if (dist > 40) {
-                            spawnPollen(x + rand(-5, 5), y + rand(5, 15));
-                            lastPollenX = x;
-                            lastPollenY = y;
-                        }
+                // Pollen trail — keep going until the bee is actually removed
+                pollenCounter++;
+                if (pollenCounter % 6 === 0) {
+                    var dist = Math.sqrt(Math.pow(x - lastPollenX, 2) + Math.pow(y - lastPollenY, 2));
+                    if (dist > 40 && x > -60 && x < W + 60) {
+                        spawnPollen(x + rand(-5, 5), y + rand(5, 15));
+                        lastPollenX = x;
+                        lastPollenY = y;
                     }
                 }
 
                 requestAnimationFrame(animateBee);
             }
 
-            lastPollenX = startX;
-            lastPollenY = startY;
             requestAnimationFrame(animateBee);
         }
 
@@ -582,11 +642,13 @@
             // Toggle Easter eggs
             handleMatrixRain(color === 'matrix');
             handleBeeAnimation(color === 'bee');
+            handleBeeconName(color === 'bee');
         });
 
         // Initialize Easter eggs on page load
         handleMatrixRain(currentColor === 'matrix');
         handleBeeAnimation(currentColor === 'bee');
+        handleBeeconName(currentColor === 'bee');
     }
 
     // --- Sidebar Collapse Toggle ---

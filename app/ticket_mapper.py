@@ -70,34 +70,29 @@ def map_tickets_to_sections(tickets, config):
     return s1, s2, s3, s4
 
 
-def filter_by_view(tickets, view_config, all_views_config):
+def filter_by_view(tickets, view_config, all_views_config=None):
     """Filter tickets by tech group IDs for a specific view.
 
     Args:
         tickets: List of ticket dicts.
-        view_config: Config for the selected view (has tech_group_ids).
-        all_views_config: Config for all views (to determine exclusions).
+        view_config: Config for the selected view (has tech_group_ids and
+            optionally exclude_tech_group_ids).
+        all_views_config: Unused, kept for backwards compatibility.
 
     Returns:
         list: Filtered tickets.
     """
     target_group_ids = view_config.get('tech_group_ids', [])
+    exclude_group_ids = view_config.get('exclude_tech_group_ids', [])
 
-    # If no group IDs configured for this view, we need to determine behavior
+    # If exclude list is specified, show all tickets EXCEPT those groups
+    if exclude_group_ids:
+        exclude_set = set(exclude_group_ids)
+        return [t for t in tickets if t.get('group_id') not in exclude_set]
+
+    # If no group IDs configured, show all tickets
     if not target_group_ids:
-        # Collect group IDs from ALL other views
-        other_group_ids = set()
-        for slug, vcfg in all_views_config.items():
-            ids = vcfg.get('tech_group_ids', [])
-            if ids and ids != target_group_ids:
-                other_group_ids.update(ids)
-
-        if other_group_ids:
-            # Show tickets NOT in any other view's groups (default/catch-all view)
-            return [t for t in tickets if t.get('group_id') not in other_group_ids]
-        else:
-            # No other view has groups configured, show all
-            return tickets
+        return tickets
 
     # Filter to only tickets in this view's group IDs
     target_set = set(target_group_ids)
@@ -117,13 +112,9 @@ def filter_by_agent(tickets, agent_id):
     if not agent_id:
         return tickets
 
-    # Handle string/int comparison
-    try:
-        agent_id_cmp = int(agent_id) if not isinstance(agent_id, int) else agent_id
-    except (ValueError, TypeError):
-        return tickets
-
-    return [t for t in tickets if t.get('responder_id') == agent_id_cmp]
+    # Compare as strings since responder_id is stored as a string
+    agent_id_str = str(agent_id)
+    return [t for t in tickets if str(t.get('responder_id', '')) == agent_id_str]
 
 
 def compute_sla_fields(ticket):

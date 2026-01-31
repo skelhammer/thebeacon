@@ -127,81 +127,6 @@
    Modern Color Theme Variants
    ======================================== */
 
-/* Modern Blue - Professional & Trustworthy */
-[data-color-theme="blue"] {
-    --color-primary: #0ea5e9;
-    --color-primary-hover: #0284c7;
-    --color-primary-bg: rgba(14, 165, 233, 0.1);
-    --color-active-bg: #0ea5e9;
-    --color-focus-ring: rgba(14, 165, 233, 0.3);
-    --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-    --color-primary-shadow: rgba(14, 165, 233, 0.15);
-    --color-primary-glow: rgba(14, 165, 233, 0.1);
-    --color-primary-shadow-strong: rgba(14, 165, 233, 0.3);
-}
-
-[data-theme="dark"][data-color-theme="blue"] {
-    --color-primary: #38bdf8;
-    --color-primary-hover: #7dd3fc;
-    --color-primary-text: #0a0a0a;
-    --color-primary-bg: rgba(56, 189, 248, 0.15);
-    --color-active-bg: #38bdf8;
-    --gradient-primary: linear-gradient(135deg, #38bdf8 0%, #7dd3fc 100%);
-    --color-primary-shadow: rgba(56, 189, 248, 0.2);
-    --color-primary-glow: rgba(56, 189, 248, 0.15);
-    --color-primary-shadow-strong: rgba(56, 189, 248, 0.35);
-}
-
-/* Forest Green - Natural & Earthy */
-[data-color-theme="green"] {
-    --color-primary: #059669;
-    --color-primary-hover: #047857;
-    --color-primary-bg: rgba(5, 150, 105, 0.1);
-    --color-active-bg: #059669;
-    --color-focus-ring: rgba(5, 150, 105, 0.3);
-    --gradient-primary: linear-gradient(135deg, #059669 0%, #10b981 100%);
-    --color-primary-shadow: rgba(5, 150, 105, 0.15);
-    --color-primary-glow: rgba(5, 150, 105, 0.1);
-    --color-primary-shadow-strong: rgba(5, 150, 105, 0.3);
-}
-
-[data-theme="dark"][data-color-theme="green"] {
-    --color-primary: #10b981;
-    --color-primary-hover: #34d399;
-    --color-primary-text: #0a0a0a;
-    --color-primary-bg: rgba(16, 185, 129, 0.15);
-    --color-active-bg: #10b981;
-    --gradient-primary: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-    --color-primary-shadow: rgba(16, 185, 129, 0.2);
-    --color-primary-glow: rgba(16, 185, 129, 0.15);
-    --color-primary-shadow-strong: rgba(16, 185, 129, 0.35);
-}
-
-/* Modern Orange - Warm & Energetic */
-[data-color-theme="orange"] {
-    --color-primary: #f97316;
-    --color-primary-hover: #ea580c;
-    --color-primary-bg: rgba(249, 115, 22, 0.1);
-    --color-active-bg: #f97316;
-    --color-focus-ring: rgba(249, 115, 22, 0.3);
-    --gradient-primary: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-    --color-primary-shadow: rgba(249, 115, 22, 0.15);
-    --color-primary-glow: rgba(249, 115, 22, 0.1);
-    --color-primary-shadow-strong: rgba(249, 115, 22, 0.3);
-}
-
-[data-theme="dark"][data-color-theme="orange"] {
-    --color-primary: #fb923c;
-    --color-primary-hover: #fdba74;
-    --color-primary-text: #0a0a0a;
-    --color-primary-bg: rgba(251, 146, 60, 0.15);
-    --color-active-bg: #fb923c;
-    --gradient-primary: linear-gradient(135deg, #fb923c 0%, #fdba74 100%);
-    --color-primary-shadow: rgba(251, 146, 60, 0.2);
-    --color-primary-glow: rgba(251, 146, 60, 0.15);
-    --color-primary-shadow-strong: rgba(251, 146, 60, 0.35);
-}
-
 /* Gold - Elegant & Sophisticated */
 [data-color-theme="gold"] {
     --color-primary: #B39B7E;
@@ -225,56 +150,6 @@
     --color-primary-shadow: rgba(201, 182, 151, 0.2);
     --color-primary-glow: rgba(201, 182, 151, 0.15);
     --color-primary-shadow-strong: rgba(201, 182, 151, 0.35);
-}
-
-/* Red - Bold & Energetic */
-[data-color-theme="red"] {
-    --color-primary: #dc2626;
-    --color-primary-hover: #b91c1c;
-    --color-primary-bg: rgba(220, 38, 38, 0.1);
-    --color-active-bg: #dc2626;
-    --color-focus-ring: rgba(220, 38, 38, 0.3);
-    --gradient-primary: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-    --color-primary-shadow: rgba(220, 38, 38, 0.15);
-    --color-primary-glow: rgba(220, 38, 38, 0.1);
-    --color-primary-shadow-strong: rgba(220, 38, 38, 0.3);
-}
-
-[data-theme="dark"][data-color-theme="red"] {
-    --color-primary: #ef4444;
-    --color-primary-hover: #f87171;
-    --color-primary-text: #0a0a0a;
-    --color-primary-bg: rgba(239, 68, 68, 0.15);
-    --color-active-bg: #ef4444;
-    --gradient-primary: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-    --color-primary-shadow: rgba(239, 68, 68, 0.2);
-    --color-primary-glow: rgba(239, 68, 68, 0.15);
-    --color-primary-shadow-strong: rgba(239, 68, 68, 0.35);
-}
-
-/* Yellow - Bright & Cheerful */
-[data-color-theme="yellow"] {
-    --color-primary: #eab308;
-    --color-primary-hover: #ca8a04;
-    --color-primary-bg: rgba(234, 179, 8, 0.1);
-    --color-active-bg: #eab308;
-    --color-focus-ring: rgba(234, 179, 8, 0.3);
-    --gradient-primary: linear-gradient(135deg, #eab308 0%, #fbbf24 100%);
-    --color-primary-shadow: rgba(234, 179, 8, 0.15);
-    --color-primary-glow: rgba(234, 179, 8, 0.1);
-    --color-primary-shadow-strong: rgba(234, 179, 8, 0.3);
-}
-
-[data-theme="dark"][data-color-theme="yellow"] {
-    --color-primary: #fbbf24;
-    --color-primary-hover: #fcd34d;
-    --color-primary-text: #0a0a0a;
-    --color-primary-bg: rgba(251, 191, 36, 0.15);
-    --color-active-bg: #fbbf24;
-    --gradient-primary: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%);
-    --color-primary-shadow: rgba(251, 191, 36, 0.2);
-    --color-primary-glow: rgba(251, 191, 36, 0.15);
-    --color-primary-shadow-strong: rgba(251, 191, 36, 0.35);
 }
 
 /* Matrix Green - Neon & Digital */
@@ -374,15 +249,25 @@
     opacity: 1;
 }
 
-/* Bee theme background — warm golden meadow gradient (light mode) */
+/* Bee theme background — warm golden gradient + honeycomb overlay (light mode) */
 [data-theme="light"][data-color-theme="bee"] body {
-    background: linear-gradient(160deg, #FFF8E1 0%, #FFECB3 25%, #FFE082 50%, #FFECB3 75%, #FFFDE7 100%);
+    background-color: #FFF8E1;
+    background-image:
+        /* Tessellating honeycomb: pointy-top hexagons, side=40, tile=69.28×120 */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='69.28' height='120'%3E%3Cdefs%3E%3ClinearGradient id='hf' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23FFD54F' stop-opacity='0.15'/%3E%3Cstop offset='1' stop-color='%23FFB300' stop-opacity='0.22'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,-40 34.64,-20 34.64,20 0,40 -34.64,20 -34.64,-20' fill='url(%23hf)' stroke='%23DAA520' stroke-opacity='0.25' stroke-width='1'/%3E%3Cpolygon points='69.28,-40 103.92,-20 103.92,20 69.28,40 34.64,20 34.64,-20' fill='url(%23hf)' stroke='%23DAA520' stroke-opacity='0.25' stroke-width='1'/%3E%3Cpolygon points='34.64,20 69.28,40 69.28,80 34.64,100 0,80 0,40' fill='url(%23hf)' stroke='%23DAA520' stroke-opacity='0.25' stroke-width='1'/%3E%3Cpolygon points='0,80 34.64,100 34.64,140 0,160 -34.64,140 -34.64,100' fill='url(%23hf)' stroke='%23DAA520' stroke-opacity='0.25' stroke-width='1'/%3E%3Cpolygon points='69.28,80 103.92,100 103.92,140 69.28,160 34.64,140 34.64,100' fill='url(%23hf)' stroke='%23DAA520' stroke-opacity='0.25' stroke-width='1'/%3E%3C/svg%3E"),
+        /* Base gradient */
+        linear-gradient(160deg, #FFF8E1 0%, #FFECB3 25%, #FFE082 50%, #FFECB3 75%, #FFFDE7 100%);
+    background-size: 69.28px 120px, 100% 100%;
     background-attachment: fixed;
 }
 
-/* Bee theme background — dark amber honey (dark mode) */
+/* Bee theme background — dark amber honey + honeycomb overlay (dark mode) */
 [data-theme="dark"][data-color-theme="bee"] body {
-    background: linear-gradient(160deg, #1a1200 0%, #2a1d00 25%, #33250a 50%, #2a1d00 75%, #1a1200 100%);
+    background-color: #1a1200;
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='69.28' height='120'%3E%3Cdefs%3E%3ClinearGradient id='hf' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23FFB300' stop-opacity='0.08'/%3E%3Cstop offset='1' stop-color='%23FF8F00' stop-opacity='0.12'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,-40 34.64,-20 34.64,20 0,40 -34.64,20 -34.64,-20' fill='url(%23hf)' stroke='%23FFB300' stroke-opacity='0.15' stroke-width='1'/%3E%3Cpolygon points='69.28,-40 103.92,-20 103.92,20 69.28,40 34.64,20 34.64,-20' fill='url(%23hf)' stroke='%23FFB300' stroke-opacity='0.15' stroke-width='1'/%3E%3Cpolygon points='34.64,20 69.28,40 69.28,80 34.64,100 0,80 0,40' fill='url(%23hf)' stroke='%23FFB300' stroke-opacity='0.15' stroke-width='1'/%3E%3Cpolygon points='0,80 34.64,100 34.64,140 0,160 -34.64,140 -34.64,100' fill='url(%23hf)' stroke='%23FFB300' stroke-opacity='0.15' stroke-width='1'/%3E%3Cpolygon points='69.28,80 103.92,100 103.92,140 69.28,160 34.64,140 34.64,100' fill='url(%23hf)' stroke='%23FFB300' stroke-opacity='0.15' stroke-width='1'/%3E%3C/svg%3E"),
+        linear-gradient(160deg, #1a1200 0%, #2a1d00 25%, #33250a 50%, #2a1d00 75%, #1a1200 100%);
+    background-size: 69.28px 120px, 100% 100%;
     background-attachment: fixed;
 }
 
@@ -2047,6 +1932,11 @@ table td a:hover {
     font-size: 0.85em;
 }
 
+.priority-badge--very-low {
+    background-color: rgba(79, 172, 254, 0.15);
+    color: var(--color-info);
+}
+
 .priority-badge--low {
     background-color: rgba(16, 185, 129, 0.15);
     color: var(--color-success);
@@ -2059,6 +1949,12 @@ table td a:hover {
 
 .priority-badge--high {
     background-color: rgba(239, 68, 68, 0.15);
+    color: var(--color-danger);
+    font-weight: 700;
+}
+
+.priority-badge--critical {
+    background-color: rgba(239, 68, 68, 0.2);
     color: var(--color-danger);
     font-weight: 700;
 }
