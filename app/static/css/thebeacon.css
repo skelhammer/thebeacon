@@ -142,26 +142,26 @@
 }
 
 [data-theme="dark"][data-color-theme="gold"] {
-    --color-bg-primary: #1A1714;
-    --color-bg-secondary: #231F1B;
-    --color-bg-tertiary: #120F0D;
-    --color-surface: #231F1B;
-    --color-surface-raised: #2E2924;
+    --color-bg-primary: #000000;
+    --color-bg-secondary: #0a0a0a;
+    --color-bg-tertiary: #000000;
+    --color-surface: #0a0a0a;
+    --color-surface-raised: #141414;
     --color-text-primary: #f0ece8;
     --color-text-secondary: #a89e94;
     --color-text-muted: #6e6359;
-    --color-border-light: #2E2924;
-    --color-border-medium: #3D3630;
-    --color-border-dark: #524A42;
+    --color-border-light: #1a1a1a;
+    --color-border-medium: #2a2a2a;
+    --color-border-dark: #3a3a3a;
     --color-primary: #C4B199;
     --color-primary-hover: #D4C5AF;
     --color-primary-text: #1A1714;
     --color-primary-bg: rgba(196, 177, 153, 0.15);
     --color-active-bg: #C4B199;
-    --color-hover-bg: #2E2924;
+    --color-hover-bg: #141414;
     --color-focus-ring: rgba(196, 177, 153, 0.3);
     --gradient-primary: linear-gradient(135deg, #C4B199 0%, #D4C5AF 100%);
-    --gradient-surface: linear-gradient(135deg, #231F1B 0%, #2E2924 100%);
+    --gradient-surface: linear-gradient(135deg, #0a0a0a 0%, #141414 100%);
     --color-primary-shadow: rgba(196, 177, 153, 0.2);
     --color-primary-glow: rgba(196, 177, 153, 0.15);
     --color-primary-shadow-strong: rgba(196, 177, 153, 0.35);
@@ -3043,6 +3043,22 @@ html.sidebar-collapsed .side-panel__label {
 @keyframes hive-cell-dissolve {
     0%   { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
     100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) translateY(30px); }
+}
+
+/* Rare visitors */
+.bee--butterfly {
+    animation: butterfly-flutter 0.3s ease-in-out infinite alternate;
+    filter: drop-shadow(0 2px 6px rgba(147, 112, 219, 0.3));
+}
+
+@keyframes butterfly-flutter {
+    0%   { margin-top: 0; transform: rotate(-3deg); }
+    100% { margin-top: -4px; transform: rotate(3deg); }
+}
+
+.bee--ladybug {
+    animation: bee-buzz 0.12s infinite alternate;
+    filter: drop-shadow(0 2px 4px rgba(220, 50, 50, 0.25));
 }
 
 /* Rainbow bee */

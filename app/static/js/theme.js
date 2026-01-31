@@ -73,15 +73,21 @@
 
         // Each column tracks its drop position, speed, and last drawn cell
         var columns = [];
-        for (var i = 0; i < numCols; i++) {
-            var startY = Math.random() * -50;
-            columns.push({
-                y: startY,
-                speed: 0.4 + Math.random() * 0.6,
-                trailLen: 8 + Math.floor(Math.random() * 20),
-                lastCell: Math.floor(startY),          // track which cell was last drawn
-            });
+
+        function buildColumns(count) {
+            var cols = [];
+            for (var i = 0; i < count; i++) {
+                var startY = Math.random() * -50;
+                cols.push({
+                    y: startY,
+                    speed: 0.4 + Math.random() * 0.6,
+                    trailLen: 8 + Math.floor(Math.random() * 20),
+                    lastCell: Math.floor(startY),
+                });
+            }
+            return cols;
         }
+        columns = buildColumns(numCols);
 
         function draw() {
             // Semi-transparent black overlay creates the fade trail
@@ -124,10 +130,19 @@
         // Run at ~20fps for the classic slow cascade feel
         matrixTimerId = setInterval(draw, 50);
 
-        // Handle resize
+        // Handle resize — rebuild columns for new width
         matrixResizeHandler = function() {
             if (matrixTimerId) {
                 initCanvas();
+                var newNumCols = Math.floor(canvas.width / colWidth);
+                if (newNumCols > numCols) {
+                    // Add new columns for the extra width
+                    var extra = buildColumns(newNumCols - numCols);
+                    columns = columns.concat(extra);
+                } else if (newNumCols < numCols) {
+                    columns.length = newNumCols;
+                }
+                numCols = newNumCols;
             }
         };
         window.addEventListener('resize', matrixResizeHandler);
@@ -336,7 +351,7 @@
         // ========================
         //  FLOATING FLOWERS & HONEYCOMBS
         // ========================
-        var flowerEmojis = ['\uD83C\uDF3B', '\uD83C\uDF3A', '\uD83C\uDF38', '\uD83C\uDF3C', '\uD83C\uDF37'];
+        var flowerEmojis = ['\uD83C\uDF3B', '\uD83C\uDF3A', '\uD83C\uDF38', '\uD83C\uDF3C', '\uD83C\uDF37', '\uD83C\uDF39', '\uD83D\uDC90', '\uD83E\uDEBB', '\uD83E\uDEB7', '\uD83C\uDFF5\uFE0F', '\uD83D\uDCAE'];
         // 🌻 🌺 🌸 🌼 🌷
         var honeycombEmojis = ['\uD83C\uDF6F']; // 🍯
         var activeFlowers = [];
@@ -520,15 +535,29 @@
         var _beeCursorX = null;
         var _beeCursorY = null;
 
+        var lastPollenTrailTime = 0;
+
         beeMoveHandler = function(e) {
             _beeCursorX = e.clientX;
             _beeCursorY = e.clientY;
+            // Pollen cursor trail
+            var now = Date.now();
+            if (now - lastPollenTrailTime > 100) {
+                lastPollenTrailTime = now;
+                spawnPollen(e.clientX + rand(-8, 8), e.clientY + rand(-5, 10));
+            }
         };
         document.addEventListener('mousemove', beeMoveHandler);
 
         // ========================
         //  BEE FACTORY
         // ========================
+        // Rare visitor insects
+        var rareVisitors = [
+            { emoji: '\uD83E\uDD8B', cls: 'bee--butterfly' },  // 🦋
+            { emoji: '\uD83D\uDC1E', cls: 'bee--ladybug' },    // 🐞
+        ];
+
         function createBee(opts) {
             opts = opts || {};
             var bee = document.createElement('div');
@@ -537,13 +566,21 @@
             bee.style.position = 'absolute';
             bee.style.zIndex = '10000';
 
-            // 3% chance of rainbow bee
-            var isRainbow = Math.random() < 0.03;
+            // 0.25% chance of rainbow bee
+            var isRainbow = Math.random() < 0.0025;
+            // 0.5% chance of a rare visitor (butterfly or ladybug)
+            var isVisitor = !isRainbow && Math.random() < 0.005;
 
             // Size variety: tiny worker, normal, or chonky queen
             var sizeRoll = Math.random();
             var size;
-            if (isRainbow) {
+            if (isVisitor) {
+                var visitor = pick(rareVisitors);
+                bee.textContent = visitor.emoji;
+                bee.classList.remove('bee--buzzing');
+                bee.classList.add(visitor.cls);
+                size = rand(22, 34);
+            } else if (isRainbow) {
                 size = rand(30, 38);  // slightly larger
                 bee.classList.remove('bee--buzzing');
                 bee.classList.add('bee--rainbow');
