@@ -184,9 +184,9 @@
             matrixEasterEggTimers.push(typeTimer);
         }
 
-        // Trigger every 30-60s
+        // Trigger every 90-180s
         function scheduleNextQuote() {
-            var delay = 30000 + Math.random() * 30000;
+            var delay = 90000 + Math.random() * 90000;
             var t = setTimeout(function() {
                 showMatrixQuote();
                 scheduleNextQuote();

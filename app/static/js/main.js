@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const url = new URL(`/api/tickets/${CURRENT_TICKET_TYPE_SLUG}`, window.location.origin);
-            const selectedAgentId = new URLSearchParams(window.location.search).get('agent_id');
+            const selectedAgentId = (agentFilter && agentFilter.value) || new URLSearchParams(window.location.search).get('agent_id');
             if (selectedAgentId) {
                 url.searchParams.set('agent_id', selectedAgentId);
             }
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Update agent dropdown if new agents returned
             if (data.agent_mapping && agentFilter) {
-                const currentValue = agentFilter.value;
+                const currentValue = agentFilter.value || new URLSearchParams(window.location.search).get('agent_id') || '';
                 const currentOptions = new Set();
                 for (let i = 1; i < agentFilter.options.length; i++) {
                     currentOptions.add(agentFilter.options[i].value);
@@ -171,9 +171,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const opt = document.createElement('option');
                         opt.value = id;
                         opt.textContent = name;
-                        if (String(id) === String(currentValue)) opt.selected = true;
                         agentFilter.appendChild(opt);
                     }
+                    // Restore selection after rebuild
+                    agentFilter.value = currentValue;
                 }
             }
 

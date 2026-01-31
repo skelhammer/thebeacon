@@ -2895,12 +2895,12 @@ html.sidebar-collapsed .side-panel__label {
 /* Typewriter quote overlay */
 .matrix-quote {
     position: fixed;
-    top: 60px;
+    bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 5;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 1.4rem;
+    font-size: 3rem;
     color: #00ff41;
     text-shadow: 0 0 8px #00ff41, 0 0 20px rgba(0, 255, 65, 0.4);
     white-space: nowrap;
