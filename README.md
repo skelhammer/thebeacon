@@ -15,7 +15,7 @@ No database required. No external service dependencies. Just a Flask app and you
 - **SLA tracking** - First response due, SLA violations, friendly time displays
 - **Sortable columns** - Click any column header to sort
 - **Dark/light mode** - Toggle with persistent localStorage preference
-- **4 color themes** - Violet, MSP Gold, Matrix rain, and Bee
+- **Color themes** - Violet and MSP Gold
 - **Collapsible sidebar** - Hamburger menu toggle
 - **Alert thresholds** - Visual warnings when ticket count gets high (sirens at emergency level)
 
