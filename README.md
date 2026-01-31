@@ -1,4 +1,4 @@
-# TheBeacon
+# The Beacon
 
 Standalone ticket dashboard for [SuperOps](https://superops.com). Fetches tickets directly from the SuperOps GraphQL API and displays them in a 4-section layout with real-time auto-refresh.
 
