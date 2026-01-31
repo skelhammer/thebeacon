@@ -127,29 +127,48 @@
    Modern Color Theme Variants
    ======================================== */
 
-/* Gold - Elegant & Sophisticated */
+/* MSP Gold — Warm Tan & Charcoal */
 [data-color-theme="gold"] {
-    --color-primary: #B39B7E;
-    --color-primary-hover: #9F8969;
-    --color-primary-bg: rgba(179, 155, 126, 0.1);
-    --color-active-bg: #B39B7E;
-    --color-focus-ring: rgba(179, 155, 126, 0.3);
-    --gradient-primary: linear-gradient(135deg, #B39B7E 0%, #C9B697 100%);
-    --color-primary-shadow: rgba(179, 155, 126, 0.15);
-    --color-primary-glow: rgba(179, 155, 126, 0.1);
-    --color-primary-shadow-strong: rgba(179, 155, 126, 0.3);
+    --color-primary: #B5A089;
+    --color-primary-hover: #9D8A72;
+    --color-primary-text: #ffffff;
+    --color-primary-bg: rgba(181, 160, 137, 0.1);
+    --color-active-bg: #B5A089;
+    --color-focus-ring: rgba(181, 160, 137, 0.3);
+    --gradient-primary: linear-gradient(135deg, #B5A089 0%, #C4B199 100%);
+    --color-primary-shadow: rgba(181, 160, 137, 0.15);
+    --color-primary-glow: rgba(181, 160, 137, 0.1);
+    --color-primary-shadow-strong: rgba(181, 160, 137, 0.3);
 }
 
 [data-theme="dark"][data-color-theme="gold"] {
-    --color-primary: #C9B697;
-    --color-primary-hover: #D4C4A8;
-    --color-primary-text: #0a0a0a;
-    --color-primary-bg: rgba(201, 182, 151, 0.15);
-    --color-active-bg: #C9B697;
-    --gradient-primary: linear-gradient(135deg, #C9B697 0%, #D4C4A8 100%);
-    --color-primary-shadow: rgba(201, 182, 151, 0.2);
-    --color-primary-glow: rgba(201, 182, 151, 0.15);
-    --color-primary-shadow-strong: rgba(201, 182, 151, 0.35);
+    --color-bg-primary: #1A1714;
+    --color-bg-secondary: #231F1B;
+    --color-bg-tertiary: #120F0D;
+    --color-surface: #231F1B;
+    --color-surface-raised: #2E2924;
+    --color-text-primary: #f0ece8;
+    --color-text-secondary: #a89e94;
+    --color-text-muted: #6e6359;
+    --color-border-light: #2E2924;
+    --color-border-medium: #3D3630;
+    --color-border-dark: #524A42;
+    --color-primary: #C4B199;
+    --color-primary-hover: #D4C5AF;
+    --color-primary-text: #1A1714;
+    --color-primary-bg: rgba(196, 177, 153, 0.15);
+    --color-active-bg: #C4B199;
+    --color-hover-bg: #2E2924;
+    --color-focus-ring: rgba(196, 177, 153, 0.3);
+    --gradient-primary: linear-gradient(135deg, #C4B199 0%, #D4C5AF 100%);
+    --gradient-surface: linear-gradient(135deg, #231F1B 0%, #2E2924 100%);
+    --color-primary-shadow: rgba(196, 177, 153, 0.2);
+    --color-primary-glow: rgba(196, 177, 153, 0.15);
+    --color-primary-shadow-strong: rgba(196, 177, 153, 0.35);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
 }
 
 /* Matrix Green - Neon & Digital */
@@ -2867,4 +2886,179 @@ html.sidebar-collapsed .side-panel__label {
 .theme-swatch.active {
     border-color: var(--color-text-primary);
     box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+/* ========================================
+   Matrix Easter Eggs
+   ======================================== */
+
+/* Typewriter quote overlay */
+.matrix-quote {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.4rem;
+    color: #00ff41;
+    text-shadow: 0 0 8px #00ff41, 0 0 20px rgba(0, 255, 65, 0.4);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 1s ease;
+}
+
+.matrix-quote--fade {
+    opacity: 0;
+}
+
+/* Glitch effect on cards */
+@keyframes matrix-glitch {
+    0%   { transform: translateX(0); clip-path: inset(0 0 0 0); }
+    20%  { transform: translateX(-3px); clip-path: inset(20% 0 60% 0); text-shadow: 2px 0 #ff0000, -2px 0 #0000ff; }
+    40%  { transform: translateX(3px); clip-path: inset(60% 0 10% 0); text-shadow: -2px 0 #ff0000, 2px 0 #0000ff; }
+    60%  { transform: translateX(-2px); clip-path: inset(40% 0 30% 0); text-shadow: 1px 0 #ff0000, -1px 0 #0000ff; }
+    80%  { transform: translateX(2px); clip-path: inset(10% 0 70% 0); text-shadow: -1px 0 #ff0000, 1px 0 #0000ff; }
+    100% { transform: translateX(0); clip-path: inset(0 0 0 0); text-shadow: none; }
+}
+
+.matrix-glitch {
+    animation: matrix-glitch 0.3s linear;
+}
+
+/* Click cascade characters */
+@keyframes matrix-fall {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(60px) scale(0.3);
+    }
+}
+
+.matrix-click-char {
+    position: absolute;
+    font-family: 'Courier New', Courier, monospace;
+    color: #00ff41;
+    text-shadow: 0 0 6px #00ff41;
+    pointer-events: none;
+    animation: matrix-fall 1s ease-out forwards;
+    z-index: 6;
+}
+
+/* Cursor trail characters */
+@keyframes matrix-trail-fade {
+    0% {
+        opacity: 0.9;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(25px) scale(0.4);
+    }
+}
+
+.matrix-trail-char {
+    position: fixed;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    color: #00ff41;
+    text-shadow: 0 0 5px #00ff41;
+    pointer-events: none;
+    animation: matrix-trail-fade 0.8s ease-out forwards;
+    z-index: 4;
+}
+
+/* ========================================
+   Bee Easter Eggs
+   ======================================== */
+
+/* Bear peek */
+.bee-bear {
+    position: fixed;
+    font-size: 48px;
+    z-index: 10001;
+    pointer-events: none;
+    transition: left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+                right 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+                bottom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    line-height: 1;
+}
+
+.bee-bear--left {
+    left: -60px;
+    top: 50%;
+}
+
+.bee-bear--right {
+    right: -60px;
+    top: 50%;
+}
+
+.bee-bear--bottom {
+    bottom: -60px;
+    left: 50%;
+}
+
+.bee-bear--sniff {
+    animation: bear-sniff 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes bear-sniff {
+    0%   { transform: rotate(-5deg) scale(1); }
+    100% { transform: rotate(5deg) scale(1.05); }
+}
+
+/* Idle hive cluster */
+.bee-hive-cluster {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+}
+
+.bee-hive-cell {
+    position: absolute;
+    font-size: 48px;
+    line-height: 1;
+    color: #DAA520;
+    text-shadow: 0 0 10px rgba(255, 179, 0, 0.4), 0 0 20px rgba(218, 165, 32, 0.2);
+    transform: translate(-50%, -50%) scale(0);
+    animation: hive-cell-appear 0.6s ease-out forwards;
+}
+
+@keyframes hive-cell-appear {
+    0%   { transform: translate(-50%, -50%) scale(0) rotate(-30deg); opacity: 0; }
+    60%  { transform: translate(-50%, -50%) scale(1.15) rotate(5deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0.85; }
+}
+
+.bee-hive-cluster--dissolve .bee-hive-cell {
+    animation: hive-cell-dissolve 1s ease-in forwards;
+}
+
+@keyframes hive-cell-dissolve {
+    0%   { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) translateY(30px); }
+}
+
+/* Rainbow bee */
+.bee--rainbow {
+    animation: bee-buzz 0.08s infinite alternate, rainbow-cycle 2s linear infinite;
+}
+
+@keyframes rainbow-cycle {
+    0%   { filter: hue-rotate(0deg) drop-shadow(0 0 6px rgba(255, 100, 100, 0.5)); }
+    33%  { filter: hue-rotate(120deg) drop-shadow(0 0 6px rgba(100, 255, 100, 0.5)); }
+    66%  { filter: hue-rotate(240deg) drop-shadow(0 0 6px rgba(100, 100, 255, 0.5)); }
+    100% { filter: hue-rotate(360deg) drop-shadow(0 0 6px rgba(255, 100, 100, 0.5)); }
+}
+
+/* Rainbow pollen */
+.bee-pollen--rainbow {
+    animation: pollen-drift 1.2s ease-out forwards, rainbow-cycle 2s linear infinite;
+    background: radial-gradient(circle, #ff69b4 0%, #ff1493 60%, transparent 100%);
 }

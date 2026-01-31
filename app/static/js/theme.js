@@ -15,6 +15,9 @@
     // --- Matrix Rain Easter Egg ---
     var matrixTimerId = null;
     var matrixResizeHandler = null;
+    var matrixEasterEggTimers = [];
+    var matrixClickHandler = null;
+    var matrixMoveHandler = null;
 
     function handleMatrixRain(active) {
         var canvas = document.getElementById('matrix-rain');
@@ -29,6 +32,20 @@
                 window.removeEventListener('resize', matrixResizeHandler);
                 matrixResizeHandler = null;
             }
+            // Clean up easter egg timers
+            matrixEasterEggTimers.forEach(function(id) { clearInterval(id); clearTimeout(id); });
+            matrixEasterEggTimers = [];
+            // Clean up event listeners
+            if (matrixClickHandler) {
+                document.removeEventListener('click', matrixClickHandler);
+                matrixClickHandler = null;
+            }
+            if (matrixMoveHandler) {
+                document.removeEventListener('mousemove', matrixMoveHandler);
+                matrixMoveHandler = null;
+            }
+            // Remove leftover easter egg elements
+            document.querySelectorAll('.matrix-quote, .matrix-click-char, .matrix-trail-char, .matrix-click-overlay').forEach(function(el) { el.remove(); });
             var clearCtx = canvas.getContext('2d');
             clearCtx.clearRect(0, 0, canvas.width, canvas.height);
             return;
@@ -114,6 +131,125 @@
             }
         };
         window.addEventListener('resize', matrixResizeHandler);
+
+        // ========================
+        //  MATRIX EASTER EGGS
+        // ========================
+
+        // --- 1. "Wake up, Neo..." Typewriter Quotes ---
+        var matrixQuotes = [
+            'Wake up, Neo...',
+            'Follow the white rabbit',
+            'There is no spoon',
+            'The Matrix has you...',
+            'Knock, knock, Neo.'
+        ];
+
+        function showMatrixQuote() {
+            var quote = matrixQuotes[Math.floor(Math.random() * matrixQuotes.length)];
+            var el = document.createElement('div');
+            el.className = 'matrix-quote';
+            el.textContent = '';
+            document.body.appendChild(el);
+
+            var charIdx = 0;
+            var typeTimer = setInterval(function() {
+                if (charIdx < quote.length) {
+                    el.textContent += quote[charIdx];
+                    charIdx++;
+                } else {
+                    clearInterval(typeTimer);
+                    // Hold for 2s then fade out
+                    setTimeout(function() {
+                        el.classList.add('matrix-quote--fade');
+                        setTimeout(function() { el.remove(); }, 1000);
+                    }, 2000);
+                }
+            }, 80);
+            matrixEasterEggTimers.push(typeTimer);
+        }
+
+        // Trigger every 30-60s
+        function scheduleNextQuote() {
+            var delay = 30000 + Math.random() * 30000;
+            var t = setTimeout(function() {
+                showMatrixQuote();
+                scheduleNextQuote();
+            }, delay);
+            matrixEasterEggTimers.push(t);
+        }
+        scheduleNextQuote();
+
+        // --- 2. Glitch Effect on UI Cards ---
+        function glitchRandomCard() {
+            var cards = document.querySelectorAll('.card');
+            if (cards.length === 0) return;
+            var card = cards[Math.floor(Math.random() * cards.length)];
+            card.classList.add('matrix-glitch');
+            setTimeout(function() { card.classList.remove('matrix-glitch'); }, 300);
+        }
+
+        // Trigger every 15-25s
+        function scheduleNextGlitch() {
+            var delay = 15000 + Math.random() * 10000;
+            var t = setTimeout(function() {
+                glitchRandomCard();
+                scheduleNextGlitch();
+            }, delay);
+            matrixEasterEggTimers.push(t);
+        }
+        scheduleNextGlitch();
+
+        // --- 3. Click Cascade ---
+        var matrixCharsPool = '\uff66\uff71\uff72\uff73\uff74\uff75\uff76\uff77\uff78\uff79\uff7a0123456789ABCDEF';
+        var clickOverlay = document.createElement('div');
+        clickOverlay.className = 'matrix-click-overlay';
+        clickOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:hidden;';
+        document.body.appendChild(clickOverlay);
+
+        matrixClickHandler = function(e) {
+            var count = 8 + Math.floor(Math.random() * 5); // 8-12
+            for (var i = 0; i < count; i++) {
+                var span = document.createElement('span');
+                span.className = 'matrix-click-char';
+                span.textContent = matrixCharsPool[Math.floor(Math.random() * matrixCharsPool.length)];
+                span.style.left = (e.clientX + (Math.random() - 0.5) * 60) + 'px';
+                span.style.top = (e.clientY + (Math.random() - 0.5) * 20) + 'px';
+                span.style.fontSize = (12 + Math.random() * 10) + 'px';
+                span.style.animationDuration = (0.7 + Math.random() * 0.5) + 's';
+                clickOverlay.appendChild(span);
+                (function(s) {
+                    setTimeout(function() { s.remove(); }, 1200);
+                })(span);
+            }
+        };
+        document.addEventListener('click', matrixClickHandler);
+
+        // --- 4. Cursor Trail ---
+        var trailElements = [];
+        var lastTrailTime = 0;
+
+        matrixMoveHandler = function(e) {
+            var now = Date.now();
+            if (now - lastTrailTime < 60) return; // throttle ~60ms
+            if (trailElements.length >= 15) return; // max 15 trail elements
+            lastTrailTime = now;
+
+            var span = document.createElement('span');
+            span.className = 'matrix-trail-char';
+            span.textContent = matrixCharsPool[Math.floor(Math.random() * matrixCharsPool.length)];
+            span.style.left = e.clientX + 'px';
+            span.style.top = e.clientY + 'px';
+            document.body.appendChild(span);
+            trailElements.push(span);
+
+            setTimeout(function() {
+                span.remove();
+                var idx = trailElements.indexOf(span);
+                if (idx > -1) trailElements.splice(idx, 1);
+            }, 800);
+        };
+        document.addEventListener('mousemove', matrixMoveHandler);
     }
 
     // --- Bee-con Name Swap ---
@@ -146,6 +282,8 @@
 
     // --- Bee Easter Egg (the full experience) ---
     var beeTimers = [];
+    var beeMoveHandler = null;
+    var beeIdleMoveHandler = null;
 
     function handleBeeAnimation(active) {
         var container = document.getElementById('bee-container');
@@ -154,6 +292,16 @@
         if (!active) {
             beeTimers.forEach(function(id) { clearInterval(id); clearTimeout(id); });
             beeTimers = [];
+            if (beeMoveHandler) {
+                document.removeEventListener('mousemove', beeMoveHandler);
+                beeMoveHandler = null;
+            }
+            if (beeIdleMoveHandler) {
+                document.removeEventListener('mousemove', beeIdleMoveHandler);
+                beeIdleMoveHandler = null;
+            }
+            // Remove leftover easter egg elements
+            document.querySelectorAll('.bee-bear, .bee-hive-cluster, .bee-hive-bee').forEach(function(el) { el.remove(); });
             container.innerHTML = '';
             return;
         }
@@ -174,9 +322,10 @@
         // ========================
         //  POLLEN PARTICLES
         // ========================
-        function spawnPollen(x, y) {
+        function spawnPollen(x, y, rainbow) {
             var dot = document.createElement('div');
             dot.className = 'bee-pollen';
+            if (rainbow) dot.classList.add('bee-pollen--rainbow');
             dot.style.left = x + 'px';
             dot.style.top = y + 'px';
             container.appendChild(dot);
@@ -366,6 +515,18 @@
                             'waggle', 'drunken', 'divebomb', 'pollinate'];
 
         // ========================
+        //  CURSOR TRACKING (for flee behavior)
+        // ========================
+        var _beeCursorX = null;
+        var _beeCursorY = null;
+
+        beeMoveHandler = function(e) {
+            _beeCursorX = e.clientX;
+            _beeCursorY = e.clientY;
+        };
+        document.addEventListener('mousemove', beeMoveHandler);
+
+        // ========================
         //  BEE FACTORY
         // ========================
         function createBee(opts) {
@@ -376,10 +537,17 @@
             bee.style.position = 'absolute';
             bee.style.zIndex = '10000';
 
+            // 3% chance of rainbow bee
+            var isRainbow = Math.random() < 0.03;
+
             // Size variety: tiny worker, normal, or chonky queen
             var sizeRoll = Math.random();
             var size;
-            if (sizeRoll < 0.15) {
+            if (isRainbow) {
+                size = rand(30, 38);  // slightly larger
+                bee.classList.remove('bee--buzzing');
+                bee.classList.add('bee--rainbow');
+            } else if (sizeRoll < 0.15) {
                 size = rand(14, 18);  // tiny baby bee
                 bee.classList.add('bee--tiny');
             } else if (sizeRoll > 0.92) {
@@ -523,6 +691,18 @@
                     }
                 }
 
+                // Cursor flee — gentle repulsion if within 120px
+                if (_beeCursorX !== null && _beeCursorY !== null) {
+                    var cdx = x - _beeCursorX;
+                    var cdy = y - _beeCursorY;
+                    var cdist = Math.sqrt(cdx * cdx + cdy * cdy);
+                    if (cdist < 120 && cdist > 0) {
+                        var push = (120 - cdist) / 120 * 8;
+                        x += (cdx / cdist) * push;
+                        y += (cdy / cdist) * push;
+                    }
+                }
+
                 bee.style.left = x + 'px';
                 bee.style.top = clampY(y) + 'px';
                 bee.style.transform = flip + ' rotate(' + (angle || 0) + 'deg)';
@@ -540,7 +720,7 @@
                 if (pollenCounter % 6 === 0) {
                     var dist = Math.sqrt(Math.pow(x - lastPollenX, 2) + Math.pow(y - lastPollenY, 2));
                     if (dist > 40 && x > -60 && x < W + 60) {
-                        spawnPollen(x + rand(-5, 5), y + rand(5, 15));
+                        spawnPollen(x + rand(-5, 5), y + rand(5, 15), isRainbow);
                         lastPollenX = x;
                         lastPollenY = y;
                     }
@@ -595,6 +775,237 @@
         setTimeout(function() { createBee(); }, 300);
         setTimeout(function() { createBee(); }, 900);
         setTimeout(function() { createFlower(); }, 1500);
+
+        // ========================
+        //  BEE EASTER EGGS
+        // ========================
+
+        // --- 5. Bear Peek ---
+        function maybeBearPeek() {
+            if (Math.random() > 0.35) return; // 35% chance each check
+
+            var bear = document.createElement('div');
+            bear.className = 'bee-bear';
+            bear.textContent = '\uD83D\uDC3B'; // 🐻
+
+            var edges = ['left', 'right', 'bottom'];
+            var edge = edges[Math.floor(Math.random() * edges.length)];
+            bear.classList.add('bee-bear--' + edge);
+
+            document.body.appendChild(bear);
+
+            // Slide in by shifting the position property (not transform, so sniff wobble works)
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    if (edge === 'left') {
+                        bear.style.left = '-12px';
+                    } else if (edge === 'right') {
+                        bear.style.right = '-12px';
+                    } else {
+                        bear.style.bottom = '-12px';
+                    }
+                    bear.classList.add('bee-bear--sniff');
+                });
+            });
+
+            // Pause 2s then slide back out
+            var hideTimer = setTimeout(function() {
+                bear.classList.remove('bee-bear--sniff');
+                if (edge === 'left') {
+                    bear.style.left = '-60px';
+                } else if (edge === 'right') {
+                    bear.style.right = '-60px';
+                } else {
+                    bear.style.bottom = '-60px';
+                }
+                // Remove after transition
+                setTimeout(function() { bear.remove(); }, 1000);
+            }, 2800);
+            beeTimers.push(hideTimer);
+        }
+
+        // Check every 15-25s
+        function scheduleBearPeek() {
+            var delay = 15000 + Math.random() * 10000;
+            var t = setTimeout(function() {
+                maybeBearPeek();
+                scheduleBearPeek();
+            }, delay);
+            beeTimers.push(t);
+        }
+        scheduleBearPeek();
+
+        // --- 7. Idle Hive-Building ---
+        var lastMoveTime = Date.now();
+        var hiveActive = false;
+        var hiveCluster = null;
+        var hiveBees = [];
+
+        beeIdleMoveHandler = function() {
+            lastMoveTime = Date.now();
+            // If hive is active, scatter it
+            if (hiveActive && hiveCluster) {
+                hiveActive = false;
+                hiveCluster.classList.add('bee-hive-cluster--dissolve');
+                var hc = hiveCluster;
+                setTimeout(function() { hc.remove(); }, 1000);
+                hiveCluster = null;
+                // Cancel crawl animation
+                if (hiveCrawlRAF) {
+                    cancelAnimationFrame(hiveCrawlRAF);
+                    hiveCrawlRAF = null;
+                }
+                // Scatter the hive bees outward
+                hiveBees.forEach(function(obj) {
+                    var el = obj.el;
+                    if (el.parentNode) {
+                        el.style.transition = 'left 1s ease-out, top 1s ease-out, opacity 1s ease-out';
+                        el.style.left = (Math.random() * W) + 'px';
+                        el.style.top = (Math.random() * H) + 'px';
+                        el.style.opacity = '0';
+                        setTimeout(function() { el.remove(); }, 1000);
+                    }
+                });
+                hiveBees = [];
+            }
+        };
+        document.addEventListener('mousemove', beeIdleMoveHandler);
+
+        // Honeycomb hex offsets: pointy-top hex grid, center + ring 1 + ring 2
+        var hexCellSize = 32;
+        var hw = hexCellSize * 1.73;  // horizontal spacing
+        var hh = hexCellSize * 1.5;   // vertical spacing
+        var hexOffsets = [
+            // Ring 0 — center
+            { x: 0, y: 0 },
+            // Ring 1 — 6 neighbors
+            { x: hw, y: 0 },
+            { x: -hw, y: 0 },
+            { x: hw * 0.5, y: -hh },
+            { x: -hw * 0.5, y: -hh },
+            { x: hw * 0.5, y: hh },
+            { x: -hw * 0.5, y: hh },
+            // Ring 2 — 12 outer cells
+            { x: hw * 2, y: 0 },
+            { x: -hw * 2, y: 0 },
+            { x: hw * 1.5, y: -hh },
+            { x: -hw * 1.5, y: -hh },
+            { x: hw * 1.5, y: hh },
+            { x: -hw * 1.5, y: hh },
+            { x: hw, y: -hh * 2 },
+            { x: -hw, y: -hh * 2 },
+            { x: 0, y: -hh * 2 },
+            { x: hw, y: hh * 2 },
+            { x: -hw, y: hh * 2 },
+            { x: 0, y: hh * 2 },
+        ];
+        var hiveCrawlRAF = null;
+
+        var idleCheckId = setInterval(function() {
+            if (hiveActive) return;
+            if (Date.now() - lastMoveTime > 60000) {
+                hiveActive = true;
+                var cx = W / 2;
+                var cy = H / 2;
+
+                // Create container for hex cells
+                hiveCluster = document.createElement('div');
+                hiveCluster.className = 'bee-hive-cluster';
+                hiveCluster.style.left = cx + 'px';
+                hiveCluster.style.top = cy + 'px';
+                document.body.appendChild(hiveCluster);
+
+                // Add hex cells one at a time
+                var cellCount = 10 + Math.floor(Math.random() * 6); // 10-15 cells
+                var shuffled = hexOffsets.slice().sort(function() { return Math.random() - 0.5; });
+                var hiveCells = [];
+
+                for (var c = 0; c < Math.min(cellCount, shuffled.length); c++) {
+                    (function(idx, offset) {
+                        var t = setTimeout(function() {
+                            var cell = document.createElement('span');
+                            cell.className = 'bee-hive-cell';
+                            cell.textContent = '\u2B22'; // ⬢
+                            cell.style.left = offset.x + 'px';
+                            cell.style.top = offset.y + 'px';
+                            hiveCluster.appendChild(cell);
+                            hiveCells.push({ el: cell, x: offset.x, y: offset.y });
+                        }, idx * 800 + Math.random() * 400);
+                        beeTimers.push(t);
+                    })(c, shuffled[c]);
+                }
+
+                // Spawn 4-5 bees that fly in, then crawl around
+                var hiveCount = 4 + Math.floor(Math.random() * 2);
+                for (var i = 0; i < hiveCount; i++) {
+                    var hb = document.createElement('div');
+                    hb.className = 'bee bee--buzzing bee-hive-bee';
+                    hb.textContent = '\uD83D\uDC1D';
+                    hb.style.position = 'fixed';
+                    hb.style.zIndex = '10000';
+                    hb.style.fontSize = rand(18, 24) + 'px';
+                    // Start from random edges
+                    hb.style.left = (Math.random() > 0.5 ? -40 : W + 40) + 'px';
+                    hb.style.top = (rand(50, H - 50)) + 'px';
+                    document.body.appendChild(hb);
+
+                    // Each bee tracks its own crawl target
+                    var beeObj = {
+                        el: hb,
+                        cx: cx + rand(-40, 40),
+                        cy: cy + rand(-40, 40),
+                        crawlX: cx + rand(-40, 40),
+                        crawlY: cy + rand(-40, 40),
+                        arrived: false,
+                        nextCrawl: 0
+                    };
+                    hiveBees.push(beeObj);
+
+                    // Fly to cluster area over 2-3s
+                    (function(obj, delay) {
+                        var t = setTimeout(function() { obj.arrived = true; }, delay);
+                        beeTimers.push(t);
+                    })(beeObj, 2000 + i * 400);
+                }
+
+                // Animate hive bees: fly in then crawl randomly
+                function animateHiveBees() {
+                    if (!hiveActive) return;
+                    for (var b = 0; b < hiveBees.length; b++) {
+                        var obj = hiveBees[b];
+                        if (!obj.el.parentNode) continue;
+                        var curX = parseFloat(obj.el.style.left) || 0;
+                        var curY = parseFloat(obj.el.style.top) || 0;
+
+                        if (!obj.arrived) {
+                            // Fly toward cluster center
+                            var tx = obj.cx;
+                            var ty = obj.cy;
+                            obj.el.style.left = (curX + (tx - curX) * 0.03) + 'px';
+                            obj.el.style.top = (curY + (ty - curY) * 0.03) + 'px';
+                        } else {
+                            // Crawl around randomly near the hive
+                            var now = Date.now();
+                            if (now > obj.nextCrawl) {
+                                // Pick a new nearby target
+                                obj.crawlX = cx + rand(-60, 60);
+                                obj.crawlY = cy + rand(-60, 60);
+                                obj.nextCrawl = now + rand(1500, 4000);
+                            }
+                            // Slowly move toward crawl target
+                            obj.el.style.left = (curX + (obj.crawlX - curX) * 0.02) + 'px';
+                            obj.el.style.top = (curY + (obj.crawlY - curY) * 0.02) + 'px';
+                            // Flip based on direction
+                            var dx = obj.crawlX - curX;
+                            obj.el.style.transform = dx > 0 ? 'scaleX(-1)' : 'scaleX(1)';
+                        }
+                    }
+                    hiveCrawlRAF = requestAnimationFrame(animateHiveBees);
+                }
+                hiveCrawlRAF = requestAnimationFrame(animateHiveBees);
+            }
+        }, 5000);
+        beeTimers.push(idleCheckId);
     }
 
     // --- Dark/Light Toggle ---
