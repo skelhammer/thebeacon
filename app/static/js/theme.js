@@ -13,100 +13,20 @@
         easterEggsUnlocked: 'thebeacon-easter-eggs-unlocked',
     };
 
-    // --- Audio Context for Easter Egg Sounds ---
-    var _eeAudioCtx = null;
-    document.addEventListener('click', function() {
-        if (!_eeAudioCtx) _eeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }, { once: true });
-
-    function playBeeSwarmBuzz(duration) {
-        if (!_eeAudioCtx) return;
-        var now = _eeAudioCtx.currentTime;
-        duration = duration || 2.5;
-        var fadeOut = 4;
-
-        // Master gain: quick fade in, long fade out (swarm flying away)
-        var masterGain = _eeAudioCtx.createGain();
-        masterGain.gain.setValueAtTime(0.001, now);
-        masterGain.gain.exponentialRampToValueAtTime(0.07, now + 0.5);
-        masterGain.gain.setValueAtTime(0.07, now + duration - fadeOut);
-        masterGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-        masterGain.connect(_eeAudioCtx.destination);
-
-        // Multiple detuned sawtooth oscillators — each is a "bee" in the swarm
-        var fundamentals = [148, 153, 159, 165, 172];
-        fundamentals.forEach(function(freq) {
-            var osc = _eeAudioCtx.createOscillator();
-            osc.type = 'sawtooth';
-            osc.frequency.value = freq;
-            osc.detune.value = (Math.random() - 0.5) * 20;
-            var g = _eeAudioCtx.createGain();
-            g.gain.value = 0.15;
-            osc.connect(g);
-            g.connect(masterGain);
-            osc.start(now);
-            osc.stop(now + duration);
+    function playBeeSwarmBuzz() {
+        var audio = new Audio('/static/audio/bee-swarm.mp3');
+        var playCount = 0;
+        audio.addEventListener('ended', function() {
+            playCount++;
+            if (playCount < 2) {
+                audio.currentTime = 0;
+                audio.play();
+            }
         });
-
-        // Upper harmonics for the sharp buzzy edge
-        [298, 310, 455].forEach(function(freq) {
-            var osc = _eeAudioCtx.createOscillator();
-            osc.type = 'triangle';
-            osc.frequency.value = freq;
-            osc.detune.value = (Math.random() - 0.5) * 30;
-            var g = _eeAudioCtx.createGain();
-            g.gain.value = 0.06;
-            osc.connect(g);
-            g.connect(masterGain);
-            osc.start(now);
-            osc.stop(now + duration);
-        });
-
-        // Wing-beat amplitude modulation (~85Hz)
-        var lfo = _eeAudioCtx.createOscillator();
-        var lfoGain = _eeAudioCtx.createGain();
-        lfo.type = 'sine';
-        lfo.frequency.value = 85;
-        lfoGain.gain.value = 0.02;
-        lfo.connect(lfoGain);
-        lfoGain.connect(masterGain.gain);
-        lfo.start(now);
-        lfo.stop(now + duration);
-
-        // Slow wobble for organic variation (swarm intensity shifting)
-        var wobble = _eeAudioCtx.createOscillator();
-        var wobbleGain = _eeAudioCtx.createGain();
-        wobble.type = 'sine';
-        wobble.frequency.value = 3;
-        wobbleGain.gain.value = 0.015;
-        wobble.connect(wobbleGain);
-        wobbleGain.connect(masterGain.gain);
-        wobble.start(now);
-        wobble.stop(now + duration);
-
-        // Bandpass-filtered noise for air turbulence from wings
-        var bufferLen = Math.ceil(_eeAudioCtx.sampleRate * duration);
-        var noiseBuffer = _eeAudioCtx.createBuffer(1, bufferLen, _eeAudioCtx.sampleRate);
-        var samples = noiseBuffer.getChannelData(0);
-        for (var i = 0; i < bufferLen; i++) {
-            samples[i] = Math.random() * 2 - 1;
-        }
-        var noise = _eeAudioCtx.createBufferSource();
-        noise.buffer = noiseBuffer;
-        var bandpass = _eeAudioCtx.createBiquadFilter();
-        bandpass.type = 'bandpass';
-        bandpass.frequency.value = 250;
-        bandpass.Q.value = 2;
-        var noiseGain = _eeAudioCtx.createGain();
-        noiseGain.gain.value = 0.03;
-        noise.connect(bandpass);
-        bandpass.connect(noiseGain);
-        noiseGain.connect(masterGain);
-        noise.start(now);
-        noise.stop(now + duration);
+        audio.play();
     }
 
-    // --- Easter Egg Unlock (tap title 5 times) ---
+    // --- Easter Egg Unlock (tap title 69 times) ---
     (function() {
         var picker = document.getElementById('color-theme-picker');
         if (!picker) return;
@@ -134,10 +54,15 @@
             el.addEventListener('click', function() {
                 tapCount++;
                 if (tapTimer) clearTimeout(tapTimer);
-                tapTimer = setTimeout(function() { tapCount = 0; }, 3000);
+                tapTimer = setTimeout(function() { tapCount = 0; }, 30000);
 
-                if (tapCount >= 5) {
+                if (tapCount >= 69) {
                     tapCount = 0;
+
+                    // Play Meridia's Beacon audio
+                    var beaconAudio = new Audio('/static/audio/meridias-beacon.mp3');
+                    beaconAudio.play();
+
                     picker.classList.add('theme-picker--unlocked');
                     localStorage.setItem(STORAGE_KEYS.easterEggsUnlocked, 'true');
 
@@ -526,6 +451,8 @@
                 overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;pointer-events:none;opacity:0;transition:opacity 0.3s;';
                 overlay.innerHTML = '<div style="font-family:Courier New,monospace;font-size:3rem;color:#00ff41;text-shadow:0 0 20px #00ff41,0 0 40px rgba(0,255,65,0.3);text-align:center;line-height:1.6;">There is no spoon</div>';
                 document.body.appendChild(overlay);
+                var spoonAudio = new Audio('/static/audio/there-is-no-spoon.mp3');
+                spoonAudio.play();
                 // Fade in
                 requestAnimationFrame(function() { overlay.style.opacity = '1'; });
                 // Fade out after 3s
@@ -1347,6 +1274,8 @@
     }
 
     function triggerBSOD() {
+        var bsodAudio = new Audio('/static/audio/windows-bsod.mp3');
+        bsodAudio.play();
         var overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0078D7;z-index:999999;display:flex;flex-direction:column;justify-content:center;padding-left:10%;font-family:Segoe UI,sans-serif;color:white;cursor:default;';
         overlay.innerHTML =
