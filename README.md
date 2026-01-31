@@ -10,12 +10,12 @@ No database required. No external service dependencies. Just a Flask app and you
 - **Multiple views** - Filter by tech group (Helpdesk, Pro Services, Tier 2, etc.)
 - **Agent filtering** - Dropdown to filter tickets by assigned technician
 - **Auto-refresh** - Polls for updates every 60 seconds (configurable)
-- **Server-side caching** - Single API call per refresh interval regardless of viewer count
+- **New ticket notification** - Audio ping when a new ticket appears in the Open section
+- **Server-side caching** - TTL-based caching reduces API calls on page loads
 - **SLA tracking** - First response due, SLA violations, friendly time displays
 - **Sortable columns** - Click any column header to sort
-- **Ticket detail modal** - Click a ticket subject for details
 - **Dark/light mode** - Toggle with persistent localStorage preference
-- **4 color themes** - Violet, MSP Gold, Matrix rain, and Bee easter eggs
+- **4 color themes** - Violet, MSP Gold, Matrix rain, and Bee
 - **Collapsible sidebar** - Hamburger menu toggle
 - **Alert thresholds** - Visual warnings when ticket count gets high (sirens at emergency level)
 
@@ -140,11 +140,12 @@ thebeacon/
 
 ## API Usage
 
-The server makes approximately:
-- **1 ticket API call per minute** (configurable via `cache_ttl_seconds`)
-- **1 technician API call every 5 minutes**
+The server caches ticket data with a configurable TTL (`cache_ttl_seconds`, default 60s) and technician data with a separate TTL (default 300s).
 
-Multiple browser tabs/users share the same server-side cache. 10 people viewing the dashboard = still just 1 API call per minute.
+- **Page loads** serve from cache, so multiple users opening the dashboard don't trigger extra API calls.
+- **Auto-refresh** bypasses the cache to ensure fresh data. Each browser tab's refresh cycle makes its own API call to SuperOps.
+
+For a single viewer, expect roughly **1 ticket API call per refresh interval** and **1 technician API call every 5 minutes**. Additional viewers sharing the same tab/page load add minimal overhead, but each separate tab with auto-refresh will make its own calls.
 
 ## Requirements
 

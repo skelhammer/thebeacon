@@ -193,7 +193,6 @@ class SuperOpsClient:
             'resolution_time': ticket.get('resolutionTime'),
             'resolution_violated': ticket.get('resolutionViolated', False),
             'sla_name': sla.get('name'),
-            'description_text': '',
         }
 
     def fetch_technicians(self, force=False):

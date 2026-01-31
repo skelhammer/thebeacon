@@ -31,6 +31,9 @@ def map_tickets_to_sections(tickets, config):
     s3_statuses = set(s.lower() for s in s3_cfg.get('statuses', []))
     s4_statuses = set(s.lower() for s in s4_cfg.get('statuses', []))
 
+    # Statuses explicitly mapped to other sections (used for catch-all logic)
+    other_statuses = s2_statuses | s3_statuses | s4_statuses
+
     s1, s2, s3, s4 = [], [], [], []
 
     for ticket in tickets:
@@ -43,9 +46,6 @@ def map_tickets_to_sections(tickets, config):
         has_first_response = bool(ticket.get('first_responded_at_iso'))
         is_sla_violated = ticket.get('first_response_violated') or ticket.get('resolution_violated')
         is_unassigned = not ticket.get('agent_name')
-
-        # Statuses explicitly mapped to other sections
-        other_statuses = s2_statuses | s3_statuses | s4_statuses
 
         # Section 3: Check first - SLA violated or specific statuses
         if s3_cfg.get('include_sla_violated') and is_sla_violated:

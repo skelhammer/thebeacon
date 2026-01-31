@@ -198,11 +198,6 @@ def create_app(config):
             's4_items': s4,
             'total_active_items': len(s1) + len(s2) + len(s3) + len(s4),
             'dashboard_generated_time_iso': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            'view': current_view_display,
-            'section1_name_js': f"Open {current_view_display} Tickets",
-            'section2_name_js': "Customer Replied",
-            'section3_name_js': "Needs Agent / Update Overdue",
-            'section4_name_js': f"Other Active {current_view_display} Tickets",
             'agent_mapping': agent_mapping,
             'error': error,
         })
