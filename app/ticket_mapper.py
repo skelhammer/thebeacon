@@ -59,8 +59,8 @@ def map_tickets_to_sections(tickets, config):
             s1.append(ticket)
         elif s1_cfg.get('include_unassigned') and is_unassigned and status not in other_statuses:
             s1.append(ticket)
-        # Section 2: Customer replied
-        elif status in s2_statuses:
+        # Section 2: Customer replied (by status or detected requester reply)
+        elif status in s2_statuses or ticket.get('has_requester_reply'):
             s2.append(ticket)
         # Section 4: Catch-all for remaining active tickets
         elif status in s4_statuses:

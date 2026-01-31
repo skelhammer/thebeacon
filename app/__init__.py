@@ -104,6 +104,15 @@ def create_app(config):
             if agent_id:
                 view_tickets = filter_by_agent(view_tickets, agent_id)
 
+            # Enrich tickets with requester reply detection
+            s2_statuses = set(
+                s.lower() for s in config.get('status_mapping', {})
+                .get('customer_replied', {}).get('statuses', [])
+            )
+            reply_ids = _client.check_requester_replies(view_tickets, s2_statuses)
+            for ticket in view_tickets:
+                ticket['has_requester_reply'] = ticket.get('ticket_id') in reply_ids
+
             # Map to 4 sections
             s1, s2, s3, s4 = map_tickets_to_sections(view_tickets, config)
 

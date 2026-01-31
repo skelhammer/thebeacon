@@ -1,5 +1,6 @@
 import time
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,7 @@ class SuperOpsClient:
         self._ticket_cache_time = 0
         self._agent_cache = None
         self._agent_cache_time = 0
+        self._conversation_cache = {}  # {ticket_id: {'updated_time': str, 'has_req_reply': bool}}
 
     def _headers(self):
         return {
@@ -259,10 +261,98 @@ class SuperOpsClient:
                 return self._agent_cache
             return {}
 
+    def check_requester_replies(self, tickets, s2_statuses):
+        """Check which tickets have a requester reply as the most recent conversation.
+
+        Uses a smart cache keyed on ticket_id + updatedTime to avoid redundant
+        API calls. Skips tickets whose status already qualifies for S2.
+        Cache misses are fetched concurrently (10 workers) to avoid blocking.
+
+        Args:
+            tickets: List of normalized ticket dicts.
+            s2_statuses: Set of lowercased status strings that route to S2.
+
+        Returns:
+            set: ticket_ids that have a requester reply as the last conversation.
+        """
+        active_ticket_ids = set()
+        reply_ticket_ids = set()
+        to_fetch = []  # (ticket_id, updated_time, cached_entry)
+
+        query = """
+        query getTicketConversationList($input: TicketIdentifierInput!) {
+            getTicketConversationList(input: $input) {
+                type
+            }
+        }
+        """
+
+        for ticket in tickets:
+            ticket_id = ticket.get('ticket_id')
+            if not ticket_id:
+                continue
+            active_ticket_ids.add(ticket_id)
+
+            status = (ticket.get('status_text') or '').lower()
+            if status in s2_statuses:
+                continue
+
+            updated_time = ticket.get('updated_at_str') or ''
+            cached = self._conversation_cache.get(ticket_id)
+
+            if cached and cached['updated_time'] == updated_time:
+                if cached['has_req_reply']:
+                    reply_ticket_ids.add(ticket_id)
+                continue
+
+            to_fetch.append((ticket_id, updated_time, cached))
+
+        # Fetch cache misses concurrently
+        if to_fetch:
+            logger.info(f"Fetching conversations for {len(to_fetch)} tickets")
+
+            def _fetch_one(ticket_id, updated_time):
+                variables = {"input": {"ticketId": ticket_id}}
+                data = self._post_graphql(query, variables)
+                conversations = data.get('getTicketConversationList') or []
+                return bool(conversations) and conversations[-1].get('type') == 'REQ_REPLY'
+
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {
+                    executor.submit(_fetch_one, tid, ut): (tid, ut, cached_entry)
+                    for tid, ut, cached_entry in to_fetch
+                }
+                for future in as_completed(futures):
+                    tid, ut, cached_entry = futures[future]
+                    try:
+                        has_reply = future.result()
+                        self._conversation_cache[tid] = {
+                            'updated_time': ut,
+                            'has_req_reply': has_reply,
+                        }
+                        if has_reply:
+                            reply_ticket_ids.add(tid)
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch conversations for ticket {tid}: {e}")
+                        if cached_entry and cached_entry.get('has_req_reply'):
+                            reply_ticket_ids.add(tid)
+
+        # Clean stale cache entries for tickets no longer in the full ticket cache
+        if self._ticket_cache is not None:
+            all_ticket_ids = set(t.get('ticket_id') for t in self._ticket_cache if t.get('ticket_id'))
+            stale_ids = set(self._conversation_cache.keys()) - all_ticket_ids
+            for stale_id in stale_ids:
+                del self._conversation_cache[stale_id]
+            if stale_ids:
+                logger.debug(f"Cleaned {len(stale_ids)} stale conversation cache entries")
+
+        return reply_ticket_ids
+
     def invalidate_cache(self):
         """Invalidate all caches, forcing next fetch to hit the API."""
         self._ticket_cache = None
         self._ticket_cache_time = 0
         self._agent_cache = None
         self._agent_cache_time = 0
+        self._conversation_cache = {}
         logger.info("SuperOps cache invalidated")
