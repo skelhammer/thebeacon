@@ -10,8 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function playNewTicketPing() {
         if (!audioCtx) return;
         [600, 900].forEach(function(freq, i) {
-            var osc = audioCtx.createOscillator();
-            var gain = audioCtx.createGain();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
             osc.type = 'sine';
             osc.frequency.value = freq;
             gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
@@ -35,6 +35,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             window.location.href = url.toString();
         });
+    }
+
+    // --- HTML Escaping ---
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     // --- Ticket Data Fetching & Rendering Logic ---
@@ -98,33 +109,37 @@ document.addEventListener('DOMContentLoaded', () => {
         's4-item-table': { key: null, direction: 'asc' }
     };
 
-    function renderItemRow(item, sectionIdPrefix) {
-        const itemId = item.id || 'N/A';
-        const subjectText = item.subject ? item.subject.substring(0, 60) + (item.subject.length > 60 ? '...' : '') : 'No Subject';
-        const requesterName = item.requester_name || 'N/A';
-        const agentName = item.agent_name || 'Unassigned';
-        const priorityText = item.priority_text || 'N/A';
-        const slaText = item.sla_text || 'N/A';
-        const slaClass = item.sla_class || 'sla-none';
-        const updatedFriendly = item.updated_friendly || 'N/A';
-        const createdDaysOld = item.created_days_old || 'N/A';
+    function renderItemRow(item) {
+        const itemId = escapeHtml(item.id || 'N/A');
+        const subjectRaw = item.subject ? item.subject.substring(0, 60) + (item.subject.length > 60 ? '...' : '') : 'No Subject';
+        const subjectText = escapeHtml(subjectRaw);
+        const requesterName = escapeHtml(item.requester_name || 'N/A');
+        const agentName = escapeHtml(item.agent_name || 'Unassigned');
+        const priorityText = escapeHtml(item.priority_text || 'N/A');
+        const slaText = escapeHtml(item.sla_text || 'N/A');
+        const slaClass = escapeHtml(item.sla_class || 'sla-none');
+        const updatedFriendly = escapeHtml(item.updated_friendly || 'N/A');
+        const createdDaysOld = escapeHtml(item.created_days_old || 'N/A');
+        const ticketId = escapeHtml(item.ticket_id || '');
 
         let slaDetailHtml = '';
         const needsFR = !item.first_responded_at_iso && item.fr_due_by_str;
         const slaAtRisk = slaClass && slaClass !== 'sla-normal' && slaClass !== 'sla-responded' && slaClass !== 'sla-none';
         if (needsFR && slaAtRisk) {
-            slaDetailHtml = `<div class="datetime-container" data-utc-datetime="${item.fr_due_by_str}" data-prefix="FR Due: "><small class="local-datetime">Loading...</small></div>`;
+            slaDetailHtml = `<div class="datetime-container" data-utc-datetime="${escapeHtml(item.fr_due_by_str)}" data-prefix="FR Due: "><small class="local-datetime">Loading...</small></div>`;
         } else if (item.type === 'SERVICE_REQUEST' && item.due_by_str && !item.first_responded_at_iso && slaAtRisk) {
-            slaDetailHtml = `<div class="datetime-container" data-utc-datetime="${item.due_by_str}" data-prefix="Due: "><small class="local-datetime">Loading...</small></div>`;
+            slaDetailHtml = `<div class="datetime-container" data-utc-datetime="${escapeHtml(item.due_by_str)}" data-prefix="Due: "><small class="local-datetime">Loading...</small></div>`;
         }
+
+        const prioritySlug = (item.priority_text || 'n-a').toLowerCase().replace(/\s+/g, '-');
 
         return `
         <tr>
-            <td><a href="${TICKET_URL_TEMPLATE.replace('{ticket_id}', item.ticket_id || '')}" target="_blank">${itemId}</a></td>
+            <td><a href="${TICKET_URL_TEMPLATE.replace('{ticket_id}', ticketId)}" target="_blank">${itemId}</a></td>
             <td>${subjectText}</td>
             <td>${requesterName}</td>
             <td>${agentName}</td>
-            <td><span class="priority-badge priority-badge--${priorityText.toLowerCase().replace(/\s+/g, '-')}">${priorityText}</span></td>
+            <td><span class="priority-badge priority-badge--${prioritySlug}">${priorityText}</span></td>
             <td>
                 <span class="sla-status ${slaClass}">${slaText}</span>
                 ${slaDetailHtml}
@@ -145,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sectionItemCountElement.textContent = items.length;
 
         if (items && items.length > 0) {
-            const html = items.map(item => renderItemRow(item, sectionIdPrefix)).join('');
+            const html = items.map(item => renderItemRow(item)).join('');
             tableBody.innerHTML = html;
             noItemsMessageElement.style.display = 'none';
             if (tableWrapper) tableWrapper.style.display = '';
@@ -354,8 +369,14 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(refreshTicketData, 100);
     }
 
-    // Periodic auto-refresh
-    if (AUTO_REFRESH_INTERVAL_MS > 0) {
-        setInterval(refreshTicketData, AUTO_REFRESH_INTERVAL_MS);
+    // Periodic auto-refresh (schedules next after current completes to prevent overlap)
+    function scheduleRefresh() {
+        if (AUTO_REFRESH_INTERVAL_MS > 0) {
+            setTimeout(async function() {
+                await refreshTicketData();
+                scheduleRefresh();
+            }, AUTO_REFRESH_INTERVAL_MS);
+        }
     }
+    scheduleRefresh();
 });

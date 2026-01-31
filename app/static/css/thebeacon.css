@@ -1,8 +1,7 @@
-/* TheBeacon Standalone Styles
-   Extracted from HiveMatrix Nexus global.css and side-panel.css
-   For the standalone ticket dashboard application */
+/* TheBeacon Styles
+   Standalone ticket dashboard application */
 
-/* HiveMatrix Global Styles - Modern Design System */
+/* TheBeacon Global Styles - Modern Design System */
 
 /* ========================================
    CSS Custom Properties (Theme Variables)
@@ -220,7 +219,7 @@
     background: #000000;
 }
 
-[data-color-theme="matrix"] .hivematrix-content {
+[data-color-theme="matrix"] .thebeacon-content {
     background-color: transparent;
 }
 
@@ -290,7 +289,7 @@
     background-attachment: fixed;
 }
 
-[data-color-theme="bee"] .hivematrix-content {
+[data-color-theme="bee"] .thebeacon-content {
     background-color: transparent;
 }
 
@@ -1153,7 +1152,7 @@ input[type="checkbox"]:disabled {
     }
 }
 
-/* Sortable table headers - grey text, no hover effects like Ledger */
+/* Sortable table headers - grey text, no hover effects */
 /* Shared styles for both <a> and <th> variants */
 a.sortable-header,
 th.sortable-header {
@@ -2272,14 +2271,14 @@ table td a:hover {
    (from side-panel.css)
    ======================================== */
 
-.hivematrix-layout {
+.thebeacon-layout {
     display: flex;
     min-height: 100vh;
     margin: 0;
     padding: 0;
 }
 
-.hivematrix-side-panel {
+.thebeacon-side-panel {
     width: 200px;
     background: var(--color-surface);
     color: var(--color-text-primary);
@@ -2295,7 +2294,7 @@ table td a:hover {
     transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.hivematrix-content {
+.thebeacon-content {
     flex: 1;
     margin-left: 200px;
     padding: 2rem;
@@ -2356,21 +2355,21 @@ table td a:hover {
 }
 
 /* Collapsed State - Smooth animation with stationary icons */
-.sidebar-collapsed .hivematrix-side-panel {
+.sidebar-collapsed .thebeacon-side-panel {
     width: 76px;
 }
 
-.sidebar-collapsed .hivematrix-content {
+.sidebar-collapsed .thebeacon-content {
     margin-left: 76px;
 }
 
 /* Initial collapsed state from localStorage (no transition to prevent flash) */
-html.sidebar-collapsed .hivematrix-side-panel {
+html.sidebar-collapsed .thebeacon-side-panel {
     width: 76px;
     transition: none;
 }
 
-html.sidebar-collapsed .hivematrix-content {
+html.sidebar-collapsed .thebeacon-content {
     margin-left: 76px;
     transition: none;
 }
@@ -2522,11 +2521,11 @@ html.sidebar-collapsed .side-panel__label {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .hivematrix-side-panel {
+    .thebeacon-side-panel {
         width: 64px;
     }
 
-    .hivematrix-content {
+    .thebeacon-content {
         margin-left: 64px;
     }
 

@@ -34,6 +34,8 @@ def map_tickets_to_sections(tickets, config):
     s1, s2, s3, s4 = [], [], [], []
 
     for ticket in tickets:
+        # Shallow copy to avoid mutating cached objects
+        ticket = dict(ticket)
         # Compute SLA and time fields for every ticket
         compute_sla_fields(ticket)
 
@@ -70,14 +72,13 @@ def map_tickets_to_sections(tickets, config):
     return s1, s2, s3, s4
 
 
-def filter_by_view(tickets, view_config, all_views_config=None):
+def filter_by_view(tickets, view_config):
     """Filter tickets by tech group IDs for a specific view.
 
     Args:
         tickets: List of ticket dicts.
         view_config: Config for the selected view (has tech_group_ids and
             optionally exclude_tech_group_ids).
-        all_views_config: Unused, kept for backwards compatibility.
 
     Returns:
         list: Filtered tickets.

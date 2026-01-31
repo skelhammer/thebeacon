@@ -246,6 +246,9 @@ class SuperOpsClient:
                 if not list_info.get('hasMore', False):
                     break
                 page += 1
+                if page > 50:
+                    logger.warning("Hit technician pagination safety limit (50 pages)")
+                    break
 
             self._agent_cache = mapping
             self._agent_cache_time = time.time()

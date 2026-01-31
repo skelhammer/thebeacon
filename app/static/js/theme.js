@@ -1432,7 +1432,7 @@
 
     // --- Sidebar Collapse Toggle ---
     var sidebarToggle = document.getElementById('sidebar-toggle');
-    var layoutEl = document.querySelector('.hivematrix-layout');
+    var layoutEl = document.querySelector('.thebeacon-layout');
 
     if (sidebarToggle && layoutEl) {
         requestAnimationFrame(function() {

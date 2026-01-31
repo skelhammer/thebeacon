@@ -24,7 +24,7 @@
     </script>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/thebeacon.css') }}?v={{ app_version }}">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.462.0"></script>
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -33,9 +33,9 @@
     <!-- Bee container (hidden unless bee theme active) -->
     <div id="bee-container"></div>
 
-    <div class="hivematrix-layout">
+    <div class="thebeacon-layout">
         <!-- Sidebar -->
-        <aside class="hivematrix-side-panel" id="side-panel">
+        <aside class="thebeacon-side-panel" id="side-panel">
             <div class="side-panel__header">
                 <button class="side-panel__toggle" id="sidebar-toggle" title="Toggle sidebar">
                     <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -80,7 +80,7 @@
         </aside>
 
         <!-- Main content -->
-        <div class="hivematrix-content">
+        <div class="thebeacon-content">
             <main role="main" aria-label="Main content">
                 {% block content %}{% endblock %}
             </main>

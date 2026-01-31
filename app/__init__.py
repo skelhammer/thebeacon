@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 # Module-level client reference (set during create_app)
 _client = None
-_config = None
 
 
 def create_app(config):
@@ -27,8 +26,7 @@ def create_app(config):
     Returns:
         Flask app instance.
     """
-    global _client, _config
-    _config = config
+    global _client
 
     app = Flask(__name__, static_folder='static')
     app.secret_key = 'thebeacon-standalone-key'
@@ -100,7 +98,7 @@ def create_app(config):
             all_tickets = _client.fetch_tickets(force=force_refresh)
 
             # Filter by view (tech group)
-            view_tickets = filter_by_view(all_tickets, view_config, views_config)
+            view_tickets = filter_by_view(all_tickets, view_config)
 
             # Filter by agent if specified
             if agent_id:
