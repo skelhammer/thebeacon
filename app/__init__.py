@@ -84,7 +84,7 @@ def create_app(config):
         views = config.get('views', {})
         return next(iter(views), 'helpdesk')
 
-    def _get_tickets_for_view(view_slug, agent_id=None):
+    def _get_tickets_for_view(view_slug, agent_id=None, force_refresh=False):
         """Fetch, filter, and section tickets for a view.
 
         Returns:
@@ -96,8 +96,8 @@ def create_app(config):
             return [], [], [], [], {}, f"Unknown view: {view_slug}"
 
         try:
-            # Fetch all tickets (uses cache)
-            all_tickets = _client.fetch_tickets()
+            # Fetch all tickets (force_refresh bypasses cache)
+            all_tickets = _client.fetch_tickets(force=force_refresh)
 
             # Filter by view (tech group)
             view_tickets = filter_by_view(all_tickets, view_config, views_config)
@@ -190,7 +190,7 @@ def create_app(config):
         current_view_display = supported[view_slug]['display_name']
 
         s1, s2, s3, s4, agent_mapping, error = _get_tickets_for_view(
-            view_slug, agent_id=agent_id
+            view_slug, agent_id=agent_id, force_refresh=True
         )
 
         return jsonify({

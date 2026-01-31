@@ -16,7 +16,7 @@
 </div>
 
 <div class="card u-mb-3">
-    <div class="card__header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div class="card__header" style="display: flex; align-items: center; justify-content: space-between; position: relative;">
         <div class="form-group" style="margin-bottom: 0;">
             <select id="agent-filter" class="form-group__select" style="max-width: 200px;">
                 <option value="">All Agents</option>
@@ -25,7 +25,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="ticket-count-display">
+        <div class="ticket-count-display" style="position: absolute; left: 50%; transform: translateX(-50%);">
             <span class="ticket-count-label">Total Active</span>
             <div class="ticket-count-wrapper">
                 <span class="siren siren--left" id="siren-left"></span>
@@ -33,7 +33,7 @@
                 <span class="siren siren--right" id="siren-right"></span>
             </div>
         </div>
-        <div style="text-align: right;">
+        <div style="text-align: right; margin-left: auto;">
             <span class="u-text-small u-text-secondary">Last Refresh:</span>
             <br>
             <strong id="dashboard-generated-time" style="font-size: 1.25rem;">Loading...</strong>
@@ -162,6 +162,14 @@
     window.CURRENT_TICKET_TYPE_SLUG = "{{ current_view_slug }}";
     window.CURRENT_TICKET_TYPE_DISPLAY = "{{ current_view_display }}";
     window.ALERT_THRESHOLDS = {{ alert_thresholds | tojson }};
+    window.INITIAL_API_DATA = {
+        s1_items: {{ s1_items | tojson }},
+        s2_items: {{ s2_items | tojson }},
+        s3_items: {{ s3_items | tojson }},
+        s4_items: {{ s4_items | tojson }},
+        total_active_items: {{ (s1_items|length + s2_items|length + s3_items|length + s4_items|length) }},
+        dashboard_generated_time_iso: "{{ dashboard_generated_time_iso }}"
+    };
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}?v={{ app_version }}"></script>
 {% endblock %}

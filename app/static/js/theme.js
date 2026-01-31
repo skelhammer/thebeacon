@@ -13,6 +13,99 @@
         easterEggsUnlocked: 'thebeacon-easter-eggs-unlocked',
     };
 
+    // --- Audio Context for Easter Egg Sounds ---
+    var _eeAudioCtx = null;
+    document.addEventListener('click', function() {
+        if (!_eeAudioCtx) _eeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }, { once: true });
+
+    function playBeeSwarmBuzz(duration) {
+        if (!_eeAudioCtx) return;
+        var now = _eeAudioCtx.currentTime;
+        duration = duration || 2.5;
+        var fadeOut = 4;
+
+        // Master gain: quick fade in, long fade out (swarm flying away)
+        var masterGain = _eeAudioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.001, now);
+        masterGain.gain.exponentialRampToValueAtTime(0.07, now + 0.5);
+        masterGain.gain.setValueAtTime(0.07, now + duration - fadeOut);
+        masterGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        masterGain.connect(_eeAudioCtx.destination);
+
+        // Multiple detuned sawtooth oscillators — each is a "bee" in the swarm
+        var fundamentals = [148, 153, 159, 165, 172];
+        fundamentals.forEach(function(freq) {
+            var osc = _eeAudioCtx.createOscillator();
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq;
+            osc.detune.value = (Math.random() - 0.5) * 20;
+            var g = _eeAudioCtx.createGain();
+            g.gain.value = 0.15;
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(now);
+            osc.stop(now + duration);
+        });
+
+        // Upper harmonics for the sharp buzzy edge
+        [298, 310, 455].forEach(function(freq) {
+            var osc = _eeAudioCtx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            osc.detune.value = (Math.random() - 0.5) * 30;
+            var g = _eeAudioCtx.createGain();
+            g.gain.value = 0.06;
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(now);
+            osc.stop(now + duration);
+        });
+
+        // Wing-beat amplitude modulation (~85Hz)
+        var lfo = _eeAudioCtx.createOscillator();
+        var lfoGain = _eeAudioCtx.createGain();
+        lfo.type = 'sine';
+        lfo.frequency.value = 85;
+        lfoGain.gain.value = 0.02;
+        lfo.connect(lfoGain);
+        lfoGain.connect(masterGain.gain);
+        lfo.start(now);
+        lfo.stop(now + duration);
+
+        // Slow wobble for organic variation (swarm intensity shifting)
+        var wobble = _eeAudioCtx.createOscillator();
+        var wobbleGain = _eeAudioCtx.createGain();
+        wobble.type = 'sine';
+        wobble.frequency.value = 3;
+        wobbleGain.gain.value = 0.015;
+        wobble.connect(wobbleGain);
+        wobbleGain.connect(masterGain.gain);
+        wobble.start(now);
+        wobble.stop(now + duration);
+
+        // Bandpass-filtered noise for air turbulence from wings
+        var bufferLen = Math.ceil(_eeAudioCtx.sampleRate * duration);
+        var noiseBuffer = _eeAudioCtx.createBuffer(1, bufferLen, _eeAudioCtx.sampleRate);
+        var samples = noiseBuffer.getChannelData(0);
+        for (var i = 0; i < bufferLen; i++) {
+            samples[i] = Math.random() * 2 - 1;
+        }
+        var noise = _eeAudioCtx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        var bandpass = _eeAudioCtx.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.value = 250;
+        bandpass.Q.value = 2;
+        var noiseGain = _eeAudioCtx.createGain();
+        noiseGain.gain.value = 0.03;
+        noise.connect(bandpass);
+        bandpass.connect(noiseGain);
+        noiseGain.connect(masterGain);
+        noise.start(now);
+        noise.stop(now + duration);
+    }
+
     // --- Easter Egg Unlock (tap title 5 times) ---
     (function() {
         var picker = document.getElementById('color-theme-picker');
@@ -412,14 +505,12 @@
             for (var i = 0; i < columns.length; i++) {
                 columns[i].speed = -(0.4 + Math.random() * 0.6);
             }
-            // After 10 seconds, flip back to normal
+            // After 30 seconds, flip back to normal from current positions
             var revertTimer = setTimeout(function() {
                 for (var i = 0; i < columns.length; i++) {
                     columns[i].speed = 0.4 + Math.random() * 0.6;
-                    columns[i].y = Math.random() * -20;
-                    columns[i].lastCell = Math.floor(columns[i].y);
                 }
-            }, 10000);
+            }, 30000);
             matrixEasterEggTimers.push(revertTimer);
         };
 
@@ -1228,6 +1319,9 @@
         // --- Konami: Unleash the Swarm ---
         konamiCallback = function() {
             var swarmCount = 100 + Math.floor(Math.random() * 51);
+            // Buzz for the full swarm: spawn time + average flight duration
+            var spawnSeconds = (swarmCount - 1) * 0.075;
+            playBeeSwarmBuzz(spawnSeconds + 10);
             for (var i = 0; i < swarmCount; i++) {
                 (function(delay) {
                     var t = setTimeout(function() {

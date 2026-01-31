@@ -1,6 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
     const agentFilter = document.getElementById('agent-filter');
 
+    // --- New Ticket Notification Sound ---
+    let audioCtx = null;
+    document.addEventListener('click', function() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }, { once: true });
+
+    function playNewTicketPing() {
+        if (!audioCtx) return;
+        [600, 900].forEach(function(freq, i) {
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + i * 0.12);
+            osc.stop(audioCtx.currentTime + i * 0.12 + 0.3);
+        });
+    }
+
     // --- Agent Filter Logic ---
     if (agentFilter) {
         agentFilter.addEventListener('change', () => {
@@ -134,6 +156,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function applyTicketData(data) {
+        window.currentApiData = data;
+
+        const totalActiveItems = data.total_active_items;
+        const totalActiveItemsCount = document.getElementById('total-active-items-count');
+        const sirenLeft = document.getElementById('siren-left');
+        const sirenRight = document.getElementById('siren-right');
+
+        if (totalActiveItemsCount) {
+            totalActiveItemsCount.textContent = totalActiveItems;
+
+            // Remove all warning classes
+            totalActiveItemsCount.classList.remove('count-warning', 'count-danger', 'count-critical', 'count-emergency', 'pulse-red');
+            if (sirenLeft) sirenLeft.classList.remove('active');
+            if (sirenRight) sirenRight.classList.remove('active');
+
+            // Apply appropriate warning state using config thresholds
+            if (totalActiveItems >= THRESHOLDS.emergency) {
+                totalActiveItemsCount.classList.add('count-emergency');
+                if (sirenLeft) sirenLeft.classList.add('active');
+                if (sirenRight) sirenRight.classList.add('active');
+            } else if (totalActiveItems >= THRESHOLDS.critical) {
+                totalActiveItemsCount.classList.add('count-critical');
+            } else if (totalActiveItems >= THRESHOLDS.danger) {
+                totalActiveItemsCount.classList.add('count-danger');
+            } else if (totalActiveItems >= THRESHOLDS.warning) {
+                totalActiveItemsCount.classList.add('count-warning');
+            }
+        }
+
+        let s1Data = data.s1_items || [];
+        let s2Data = data.s2_items || [];
+        let s3Data = data.s3_items || [];
+        let s4Data = data.s4_items || [];
+
+        if (sortState['s1-item-table'].key) s1Data = sortData([...s1Data], sortState['s1-item-table'].key, sortState['s1-item-table'].direction);
+        if (sortState['s2-item-table'].key) s2Data = sortData([...s2Data], sortState['s2-item-table'].key, sortState['s2-item-table'].direction);
+        if (sortState['s3-item-table'].key) s3Data = sortData([...s3Data], sortState['s3-item-table'].key, sortState['s3-item-table'].direction);
+        if (sortState['s4-item-table'].key) s4Data = sortData([...s4Data], sortState['s4-item-table'].key, sortState['s4-item-table'].direction);
+
+        updateItemSection('s1', s1Data);
+        updateItemSection('s2', s2Data);
+        updateItemSection('s3', s3Data);
+        updateItemSection('s4', s4Data);
+
+        updateAllSortIndicators();
+        if (data.dashboard_generated_time_iso) {
+            convertAllUTCToLocal(data.dashboard_generated_time_iso);
+        }
+    }
+
     async function refreshTicketData() {
         const apiErrorBanner = document.getElementById('api-error-banner');
         const apiErrorMessage = document.getElementById('api-error-message');
@@ -189,54 +262,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            window.currentApiData = data;
-
-            const totalActiveItems = data.total_active_items;
-            const totalActiveItemsCount = document.getElementById('total-active-items-count');
-            const sirenLeft = document.getElementById('siren-left');
-            const sirenRight = document.getElementById('siren-right');
-
-            if (totalActiveItemsCount) {
-                totalActiveItemsCount.textContent = totalActiveItems;
-
-                // Remove all warning classes
-                totalActiveItemsCount.classList.remove('count-warning', 'count-danger', 'count-critical', 'count-emergency', 'pulse-red');
-                if (sirenLeft) sirenLeft.classList.remove('active');
-                if (sirenRight) sirenRight.classList.remove('active');
-
-                // Apply appropriate warning state using config thresholds
-                if (totalActiveItems >= THRESHOLDS.emergency) {
-                    totalActiveItemsCount.classList.add('count-emergency');
-                    if (sirenLeft) sirenLeft.classList.add('active');
-                    if (sirenRight) sirenRight.classList.add('active');
-                } else if (totalActiveItems >= THRESHOLDS.critical) {
-                    totalActiveItemsCount.classList.add('count-critical');
-                } else if (totalActiveItems >= THRESHOLDS.danger) {
-                    totalActiveItemsCount.classList.add('count-danger');
-                } else if (totalActiveItems >= THRESHOLDS.warning) {
-                    totalActiveItemsCount.classList.add('count-warning');
-                }
+            // Detect new open tickets and play notification
+            const oldS1 = window.currentApiData.s1_items || [];
+            const newS1 = data.s1_items || [];
+            if (oldS1.length > 0) {
+                const oldIds = new Set(oldS1.map(function(i) { return i.id; }));
+                const hasNew = newS1.some(function(i) { return !oldIds.has(i.id); });
+                if (hasNew) playNewTicketPing();
             }
 
-            let s1Data = data.s1_items || [];
-            let s2Data = data.s2_items || [];
-            let s3Data = data.s3_items || [];
-            let s4Data = data.s4_items || [];
-
-            if (sortState['s1-item-table'].key) s1Data = sortData([...s1Data], sortState['s1-item-table'].key, sortState['s1-item-table'].direction);
-            if (sortState['s2-item-table'].key) s2Data = sortData([...s2Data], sortState['s2-item-table'].key, sortState['s2-item-table'].direction);
-            if (sortState['s3-item-table'].key) s3Data = sortData([...s3Data], sortState['s3-item-table'].key, sortState['s3-item-table'].direction);
-            if (sortState['s4-item-table'].key) s4Data = sortData([...s4Data], sortState['s4-item-table'].key, sortState['s4-item-table'].direction);
-
-            updateItemSection('s1', s1Data);
-            updateItemSection('s2', s2Data);
-            updateItemSection('s3', s3Data);
-            updateItemSection('s4', s4Data);
-
-            updateAllSortIndicators();
-            if (data.dashboard_generated_time_iso) {
-                convertAllUTCToLocal(data.dashboard_generated_time_iso);
-            }
+            applyTicketData(data);
 
         } catch (error) {
             console.error('Error refreshing data:', error);
@@ -311,11 +346,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Initial data fetch and auto-refresh
-    if (AUTO_REFRESH_INTERVAL_MS > 0) {
-        setTimeout(refreshTicketData, 100);
-        setInterval(refreshTicketData, AUTO_REFRESH_INTERVAL_MS);
+    // Initial render from server-injected data (instant, no AJAX wait)
+    if (window.INITIAL_API_DATA) {
+        applyTicketData(window.INITIAL_API_DATA);
     } else {
+        // Fallback if server didn't inject data
         setTimeout(refreshTicketData, 100);
+    }
+
+    // Periodic auto-refresh
+    if (AUTO_REFRESH_INTERVAL_MS > 0) {
+        setInterval(refreshTicketData, AUTO_REFRESH_INTERVAL_MS);
     }
 });
