@@ -18,7 +18,7 @@
         var playCount = 0;
         audio.addEventListener('ended', function() {
             playCount++;
-            if (playCount < 2) {
+            if (playCount < 3) {
                 audio.currentTime = 0;
                 audio.play();
             }
