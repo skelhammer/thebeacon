@@ -124,6 +124,7 @@ thebeacon/
 ├── config.yaml             # Your config (gitignored)
 ├── config.example.yaml     # Template config
 ├── requirements.txt        # Python dependencies
+├── install-service.sh      # Systemd service installer
 ├── app/
 │   ├── __init__.py         # Flask app factory + routes
 │   ├── superops_client.py  # GraphQL client with TTL caching
@@ -147,6 +148,32 @@ The server caches ticket data with a configurable TTL (`cache_ttl_seconds`, defa
 - **Auto-refresh** bypasses the cache to ensure fresh data. Each browser tab's refresh cycle makes its own API call to SuperOps.
 
 For a single viewer, expect roughly **1 ticket API call per refresh interval** and **1 technician API call every 5 minutes**. Additional viewers sharing the same tab/page load add minimal overhead, but each separate tab with auto-refresh will make its own calls.
+
+## Install as a Service (Ubuntu)
+
+To run TheBeacon as an auto-starting systemd service on an Ubuntu server:
+
+```bash
+sudo bash install-service.sh
+```
+
+The script will prompt for the install path and service user, set up the virtualenv if needed, and create + enable a systemd service.
+
+Useful commands after install:
+
+```bash
+sudo systemctl status thebeacon      # Check status
+sudo journalctl -u thebeacon -f      # Follow logs
+sudo systemctl restart thebeacon     # Restart
+sudo systemctl stop thebeacon        # Stop
+```
+
+To uninstall:
+
+```bash
+sudo rm /etc/systemd/system/thebeacon.service
+sudo systemctl daemon-reload
+```
 
 ## Requirements
 
