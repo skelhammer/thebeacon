@@ -18,9 +18,6 @@ cp config.example.yaml config.yaml  # then edit with credentials
 # Run (dev)
 python run.py  # serves on http://localhost:5050
 
-# Run tests
-python -m pytest test_s2_routing.py
-
 # Production (Ubuntu systemd)
 sudo bash install-service.sh
 sudo journalctl -u thebeacon -f    # logs

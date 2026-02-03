@@ -405,6 +405,161 @@
 }
 
 /* ========================================
+   Japan Theme — Sakura Pink
+   ======================================== */
+
+/* Japan Light */
+[data-color-theme="japan"] {
+    --color-primary: #E91E8D;
+    --color-primary-hover: #C2185B;
+    --color-primary-text: #ffffff;
+    --color-primary-bg: rgba(233, 30, 141, 0.1);
+    --color-active-bg: #E91E8D;
+    --color-focus-ring: rgba(233, 30, 141, 0.3);
+    --gradient-primary: linear-gradient(135deg, #E91E8D 0%, #F06292 100%);
+    --color-primary-shadow: rgba(233, 30, 141, 0.15);
+    --color-primary-glow: rgba(233, 30, 141, 0.1);
+    --color-primary-shadow-strong: rgba(233, 30, 141, 0.3);
+}
+
+/* Japan Dark */
+[data-theme="dark"][data-color-theme="japan"] {
+    --color-bg-primary: #1a0a12;
+    --color-bg-secondary: #24101a;
+    --color-bg-tertiary: #120610;
+    --color-surface: #24101a;
+    --color-surface-raised: #2e1524;
+    --color-text-primary: #fce4ec;
+    --color-text-secondary: #c48b9f;
+    --color-text-muted: #8c5a6e;
+    --color-border-light: #2e1524;
+    --color-border-medium: #3d1f31;
+    --color-border-dark: #4d2a3e;
+    --color-primary: #F472B6;
+    --color-primary-hover: #F9A8D4;
+    --color-primary-text: #1a0a12;
+    --color-primary-bg: rgba(244, 114, 182, 0.15);
+    --color-active-bg: #F472B6;
+    --color-hover-bg: #2e1524;
+    --color-focus-ring: rgba(244, 114, 182, 0.3);
+    --gradient-primary: linear-gradient(135deg, #F472B6 0%, #F9A8D4 100%);
+    --gradient-surface: linear-gradient(135deg, #24101a 0%, #2e1524 100%);
+    --color-primary-shadow: rgba(244, 114, 182, 0.2);
+    --color-primary-glow: rgba(244, 114, 182, 0.15);
+    --color-primary-shadow-strong: rgba(244, 114, 182, 0.35);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
+}
+
+/* Japan background — seigaiha wave pattern + pink gradient (light) */
+[data-theme="light"][data-color-theme="japan"] body {
+    background-color: #FFF0F5;
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Ccircle cx='0' cy='50' r='40' fill='none' stroke='%23E91E8D' stroke-opacity='0.08' stroke-width='1'/%3E%3Ccircle cx='0' cy='50' r='30' fill='none' stroke='%23E91E8D' stroke-opacity='0.06' stroke-width='1'/%3E%3Ccircle cx='0' cy='50' r='20' fill='none' stroke='%23E91E8D' stroke-opacity='0.04' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='%23E91E8D' stroke-opacity='0.08' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23E91E8D' stroke-opacity='0.06' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='20' fill='none' stroke='%23E91E8D' stroke-opacity='0.04' stroke-width='1'/%3E%3Ccircle cx='100' cy='50' r='40' fill='none' stroke='%23E91E8D' stroke-opacity='0.08' stroke-width='1'/%3E%3Ccircle cx='100' cy='50' r='30' fill='none' stroke='%23E91E8D' stroke-opacity='0.06' stroke-width='1'/%3E%3Ccircle cx='100' cy='50' r='20' fill='none' stroke='%23E91E8D' stroke-opacity='0.04' stroke-width='1'/%3E%3C/svg%3E"),
+        linear-gradient(160deg, #FFF0F5 0%, #FCE4EC 25%, #F8BBD0 50%, #FCE4EC 75%, #FFF0F5 100%);
+    background-size: 100px 50px, 100% 100%;
+    background-attachment: fixed;
+}
+
+/* Japan background — dark mode */
+[data-theme="dark"][data-color-theme="japan"] body {
+    background-color: #1a0a12;
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Ccircle cx='0' cy='50' r='40' fill='none' stroke='%23F472B6' stroke-opacity='0.06' stroke-width='1'/%3E%3Ccircle cx='0' cy='50' r='30' fill='none' stroke='%23F472B6' stroke-opacity='0.04' stroke-width='1'/%3E%3Ccircle cx='0' cy='50' r='20' fill='none' stroke='%23F472B6' stroke-opacity='0.03' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='%23F472B6' stroke-opacity='0.06' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23F472B6' stroke-opacity='0.04' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='20' fill='none' stroke='%23F472B6' stroke-opacity='0.03' stroke-width='1'/%3E%3Ccircle cx='100' cy='50' r='40' fill='none' stroke='%23F472B6' stroke-opacity='0.06' stroke-width='1'/%3E%3Ccircle cx='100' cy='50' r='30' fill='none' stroke='%23F472B6' stroke-opacity='0.04' stroke-width='1'/%3E%3Ccircle cx='100' cy='50' r='20' fill='none' stroke='%23F472B6' stroke-opacity='0.03' stroke-width='1'/%3E%3C/svg%3E"),
+        linear-gradient(160deg, #1a0a12 0%, #24101a 25%, #2e1524 50%, #24101a 75%, #1a0a12 100%);
+    background-size: 100px 50px, 100% 100%;
+    background-attachment: fixed;
+}
+
+[data-color-theme="japan"] .thebeacon-content { background-color: transparent; }
+
+/* Japan container */
+#japan-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+[data-color-theme="japan"] #japan-container { opacity: 1; }
+
+/* Sakura petal */
+.sakura-petal {
+    position: absolute;
+    pointer-events: none;
+    will-change: transform, top, opacity;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(233, 30, 141, 0.2));
+}
+
+/* Lucky cat */
+.lucky-cat {
+    position: fixed;
+    bottom: -60px;
+    right: 30px;
+    font-size: 48px;
+    transition: bottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10000;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.lucky-cat--visible {
+    bottom: 10px;
+}
+
+.lucky-cat--wave {
+    animation: lucky-cat-wave 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes lucky-cat-wave {
+    0%   { transform: rotate(-8deg); }
+    100% { transform: rotate(8deg); }
+}
+
+/* Zen overlay */
+.zen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    cursor: pointer;
+}
+
+.zen-overlay--visible { opacity: 1; }
+
+.zen-overlay__icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.zen-overlay__text {
+    font-size: 2.5rem;
+    color: #F472B6;
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    text-shadow: 0 0 20px rgba(244, 114, 182, 0.4);
+}
+
+/* ========================================
    Base Styles
    ======================================== */
 

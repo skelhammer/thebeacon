@@ -39,7 +39,7 @@
 
         // Also auto-unlock if an easter egg theme is already active
         var currentColor = localStorage.getItem(STORAGE_KEYS.colorTheme) || '';
-        if (currentColor === 'matrix' || currentColor === 'bee') {
+        if (['matrix', 'bee', 'japan'].indexOf(currentColor) !== -1) {
             picker.classList.add('theme-picker--unlocked');
             localStorage.setItem(STORAGE_KEYS.easterEggsUnlocked, 'true');
             return;
@@ -113,8 +113,9 @@
                     if (konamiCallback) {
                         konamiCallback();
                     } else {
-                        // Default theme: disco mode
-                        triggerDisco();
+                        // Default/non-themed: randomly pick from pool
+                        var defaultKonamis = [triggerBSOD, triggerRetro, triggerNyanCat, triggerAlertCascade];
+                        defaultKonamis[Math.floor(Math.random() * defaultKonamis.length)]();
                     }
                 }
             } else {
@@ -123,36 +124,437 @@
         });
     })();
 
-    // --- Disco Mode (default Konami easter egg) ---
-    function triggerDisco() {
-        var colors = ['#ff0000', '#ff8800', '#ffff00', '#00ff00', '#0088ff', '#8800ff', '#ff00ff'];
+    // --- Retro CRT Mode (default Konami option) ---
+    function triggerRetro() {
+        var crtTimers = [];
+        var crtIntervals = [];
 
-        // Full-screen overlay for color flash (CSS variables block inline bg)
+        // === Phase 1: Power-on line (0-600ms) ===
+        var powerLine = document.createElement('div');
+        powerLine.style.cssText = 'position:fixed;top:50%;left:0;width:100%;height:2px;z-index:100000;pointer-events:none;background:white;box-shadow:0 0 30px 10px rgba(255,255,255,0.8);transform:translateY(-50%);transition:height 0.3s ease-out, opacity 0.2s;';
+        document.body.appendChild(powerLine);
+
+        // White flash overlay
+        var flashOverlay = document.createElement('div');
+        flashOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;pointer-events:none;background:white;opacity:0;transition:opacity 0.15s;';
+        document.body.appendChild(flashOverlay);
+
+        // Expand line + flash at 200ms
+        crtTimers.push(setTimeout(function() {
+            powerLine.style.height = '100vh';
+            flashOverlay.style.opacity = '0.7';
+        }, 200));
+
+        // Fade flash, remove power-on elements at 600ms
+        crtTimers.push(setTimeout(function() {
+            flashOverlay.style.opacity = '0';
+            powerLine.style.opacity = '0';
+            setTimeout(function() {
+                powerLine.remove();
+                flashOverlay.remove();
+            }, 200);
+        }, 500));
+
+        // === Phase 2: CRT effect (from 600ms, lasts ~9.4s) ===
+        // Heavy scanlines
         var overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99998;pointer-events:none;opacity:0.4;transition:background-color 0.12s;';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99998;pointer-events:none;opacity:0;transition:opacity 0.3s;';
+        overlay.style.background = 'repeating-linear-gradient(0deg, rgba(0,255,65,0.15) 0px, rgba(0,255,65,0.15) 2px, transparent 2px, transparent 5px)';
         document.body.appendChild(overlay);
 
-        var cards = document.querySelectorAll('.card');
-        cards.forEach(function(c) { c.style.transition = 'transform 0.15s'; });
+        // Strong green tint
+        var tint = document.createElement('div');
+        tint.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99997;pointer-events:none;background:rgba(0,255,65,0.12);opacity:0;transition:opacity 0.3s;mix-blend-mode:overlay;';
+        document.body.appendChild(tint);
 
-        var count = 0;
-        var discoTimer = setInterval(function() {
-            overlay.style.backgroundColor = colors[count % colors.length];
-            cards.forEach(function(c, i) {
-                var angle = ((count + i) % 2 === 0) ? '2deg' : '-2deg';
-                var scale = ((count + i) % 3 === 0) ? '1.02' : '0.98';
-                c.style.transform = 'rotate(' + angle + ') scale(' + scale + ')';
-            });
-            count++;
-            if (count > 30) {
-                clearInterval(discoTimer);
-                overlay.remove();
-                cards.forEach(function(c) {
-                    c.style.transform = '';
-                    c.style.transition = '';
-                });
+        // Content styling: curvature + phosphor glow + desaturation
+        var content = document.querySelector('.thebeacon-content');
+        var origStyles = {};
+        if (content) {
+            origStyles.filter = content.style.filter || '';
+            origStyles.borderRadius = content.style.borderRadius || '';
+            origStyles.overflow = content.style.overflow || '';
+            origStyles.boxShadow = content.style.boxShadow || '';
+            origStyles.transition = content.style.transition || '';
+            origStyles.transform = content.style.transform || '';
+        }
+
+        crtTimers.push(setTimeout(function() {
+            overlay.style.opacity = '1';
+            tint.style.opacity = '1';
+            if (content) {
+                content.style.transition = 'all 0.3s';
+                content.style.filter = 'saturate(0) brightness(1.1) contrast(1.2)';
+                content.style.borderRadius = '12px';
+                content.style.overflow = 'hidden';
+                content.style.boxShadow = 'inset 0 0 60px rgba(0,255,65,0.15), inset 0 0 120px rgba(0,255,65,0.05)';
             }
+        }, 600));
+
+        // Aggressive flicker: scanline opacity varies 0.08-0.20
+        var flickerTimer = setInterval(function() {
+            var intensity = 0.08 + Math.random() * 0.12;
+            overlay.style.background = 'repeating-linear-gradient(0deg, rgba(0,255,65,' + intensity + ') 0px, rgba(0,255,65,' + intensity + ') 2px, transparent 2px, transparent 5px)';
         }, 150);
+        crtIntervals.push(flickerTimer);
+
+        // Horizontal jitter: every 2-4s, content shifts 2-4px for 100ms
+        var jitterTimer = setInterval(function() {
+            if (!content) return;
+            var shift = (2 + Math.random() * 2) * (Math.random() > 0.5 ? 1 : -1);
+            content.style.transform = 'translateX(' + shift + 'px)';
+            setTimeout(function() {
+                if (content) content.style.transform = '';
+            }, 100);
+        }, 2000 + Math.random() * 2000);
+        crtIntervals.push(jitterTimer);
+
+        // Static bursts: every 3-6s, random-height white-noise band for 80ms
+        var staticBurst = document.createElement('div');
+        staticBurst.style.cssText = 'position:fixed;left:0;width:100%;z-index:99999;pointer-events:none;opacity:0;';
+        document.body.appendChild(staticBurst);
+
+        var staticTimer = setInterval(function() {
+            var bandHeight = 20 + Math.random() * 80;
+            var bandTop = Math.random() * (window.innerHeight - bandHeight);
+            staticBurst.style.top = bandTop + 'px';
+            staticBurst.style.height = bandHeight + 'px';
+            staticBurst.style.background = 'repeating-linear-gradient(90deg, rgba(255,255,255,' + (0.05 + Math.random() * 0.1) + ') 0px, transparent 2px, rgba(255,255,255,' + (0.03 + Math.random() * 0.08) + ') 4px)';
+            staticBurst.style.opacity = '1';
+            setTimeout(function() {
+                staticBurst.style.opacity = '0';
+            }, 80);
+        }, 3000 + Math.random() * 3000);
+        crtIntervals.push(staticTimer);
+
+        // === Phase 3: CRT power-off at 10s ===
+        crtTimers.push(setTimeout(function() {
+            // Stop all CRT intervals
+            crtIntervals.forEach(function(id) { clearInterval(id); });
+
+            // Fade out scanlines and tint
+            overlay.style.opacity = '0';
+            tint.style.opacity = '0';
+            staticBurst.style.opacity = '0';
+
+            // Restore content styles
+            if (content) {
+                content.style.transition = 'all 0.3s';
+                content.style.filter = origStyles.filter;
+                content.style.borderRadius = origStyles.borderRadius;
+                content.style.overflow = origStyles.overflow;
+                content.style.boxShadow = origStyles.boxShadow;
+                content.style.transform = '';
+            }
+
+            // Power-off: shrink to horizontal line then fade
+            var powerOff = document.createElement('div');
+            powerOff.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:100000;pointer-events:none;background:white;opacity:0.6;transition:height 0.4s ease-in, top 0.4s ease-in, opacity 0.3s;';
+            document.body.appendChild(powerOff);
+
+            requestAnimationFrame(function() {
+                powerOff.style.height = '2px';
+                powerOff.style.top = '50%';
+            });
+
+            setTimeout(function() {
+                powerOff.style.opacity = '0';
+                setTimeout(function() {
+                    powerOff.remove();
+                    overlay.remove();
+                    tint.remove();
+                    staticBurst.remove();
+                    if (content) content.style.transition = origStyles.transition;
+                }, 300);
+            }, 500);
+        }, 10000));
+    }
+
+    // --- Nyan Cat (default Konami option) ---
+    function triggerNyanCat() {
+        var W = window.innerWidth;
+        var H = window.innerHeight;
+        var rainbowColors = ['#ff0000', '#ff8800', '#ffff00', '#33ff00', '#0099ff', '#6633ff'];
+        var catCount = 8 + Math.floor(Math.random() * 7); // 8-14 cats
+
+        // Shared trail container
+        var trailContainer = document.createElement('div');
+        trailContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99998;pointer-events:none;overflow:hidden;';
+        document.body.appendChild(trailContainer);
+
+        var activeCats = 0;
+
+        function spawnNyan(delay) {
+            setTimeout(function() {
+                activeCats++;
+                var cat = document.createElement('img');
+                cat.src = '/static/img/nyancat.png';
+                var size = 40 + Math.random() * 60; // 40-100px
+                cat.style.cssText = 'position:fixed;z-index:99999;width:' + size + 'px;height:auto;pointer-events:none;image-rendering:pixelated;';
+                var startY = 30 + Math.random() * (H - 80);
+                cat.style.left = '-' + (size + 20) + 'px';
+                cat.style.top = startY + 'px';
+                document.body.appendChild(cat);
+
+                var startTime = Date.now();
+                var duration = 3000 + Math.random() * 3000; // 3-6s
+                var waveAmp = 20 + Math.random() * 50;
+                var waveFreq = 3 + Math.random() * 6;
+                var lastTrailX = -(size + 20);
+                var segH = Math.max(4, Math.round(size / 12));
+
+                function animateNyan() {
+                    var elapsed = Date.now() - startTime;
+                    var p = elapsed / duration;
+                    if (p >= 1) {
+                        cat.remove();
+                        activeCats--;
+                        if (activeCats <= 0) {
+                            trailContainer.style.transition = 'opacity 0.8s';
+                            trailContainer.style.opacity = '0';
+                            setTimeout(function() { trailContainer.remove(); }, 900);
+                        }
+                        return;
+                    }
+
+                    var x = -(size + 20) + (W + size + 40) * p;
+                    var y = startY + Math.sin(p * Math.PI * waveFreq) * waveAmp;
+                    cat.style.left = x + 'px';
+                    cat.style.top = y + 'px';
+
+                    if (x - lastTrailX > 8) {
+                        lastTrailX = x;
+                        for (var i = 0; i < rainbowColors.length; i++) {
+                            var seg = document.createElement('div');
+                            seg.style.cssText = 'position:absolute;width:' + (segH * 2) + 'px;height:' + segH + 'px;border-radius:1px;opacity:0.85;';
+                            seg.style.backgroundColor = rainbowColors[i];
+                            seg.style.left = x + 'px';
+                            seg.style.top = (y + size * 0.2 + i * (segH + 1)) + 'px';
+                            trailContainer.appendChild(seg);
+                            (function(s) {
+                                setTimeout(function() {
+                                    s.style.transition = 'opacity 1.5s';
+                                    s.style.opacity = '0';
+                                }, 200);
+                            })(seg);
+                        }
+                    }
+
+                    requestAnimationFrame(animateNyan);
+                }
+                requestAnimationFrame(animateNyan);
+            }, delay);
+        }
+
+        for (var i = 0; i < catCount; i++) {
+            spawnNyan(i * (100 + Math.random() * 200));
+        }
+    }
+
+    // --- Fake Alert Cascade (default Konami option) — Hydra Mode ---
+    function triggerAlertCascade() {
+        var messages = [
+            { title: 'System Error', body: 'Keyboard not found. Press F1 to continue.' },
+            { title: 'Warning', body: 'Your free trial of existence has expired.' },
+            { title: 'Critical Error', body: 'Task failed successfully.' },
+            { title: 'Alert', body: 'Something happened. Or maybe it didn\'t. Who knows.' },
+            { title: 'Error 418', body: 'I\'m a teapot. I refuse to brew coffee.' },
+            { title: 'Fatal Exception', body: 'An error occurred while displaying the previous error.' },
+            { title: 'Notice', body: 'This incident will be reported. To no one in particular.' },
+            { title: 'Segfault', body: 'The code is haunted. Try burning sage on the server.' },
+            { title: 'PC LOAD LETTER', body: 'What does that even mean?' },
+            { title: 'Helpful Tip', body: 'Have you tried turning it off and on again?' },
+            { title: 'Error: Success', body: 'The operation completed successfully. But at what cost?' },
+            { title: 'Existential Error', body: 'Error: Success.' },
+        ];
+
+        var activeAlerts = [];
+        var alertZIndex = 100000;
+        var totalSpawned = 0;
+        var finalBossShown = false;
+        var cascadeTimers = [];
+
+        // Play BSOD sound on first dialog
+        var bsodAudio = new Audio('/static/audio/windows-bsod.mp3');
+        bsodAudio.volume = 0.3;
+        bsodAudio.play().catch(function() {});
+
+        function getRandomMsg() {
+            return messages[Math.floor(Math.random() * messages.length)];
+        }
+
+        function shakeBox(box) {
+            var orig = box.style.transform || '';
+            var shakeCount = 0;
+            var shakeTimer = setInterval(function() {
+                var dx = (Math.random() - 0.5) * 8;
+                box.style.transform = 'translateX(' + dx + 'px)';
+                shakeCount++;
+                if (shakeCount > 6) {
+                    clearInterval(shakeTimer);
+                    box.style.transform = orig;
+                }
+            }, 30);
+            cascadeTimers.push(shakeTimer);
+        }
+
+        function dismissBox(box) {
+            box.style.transition = 'opacity 0.15s, transform 0.15s';
+            box.style.opacity = '0';
+            box.style.transform = 'scale(0.9)';
+            setTimeout(function() { box.remove(); }, 200);
+            var idx = activeAlerts.indexOf(box);
+            if (idx > -1) activeAlerts.splice(idx, 1);
+        }
+
+        function dismissAll() {
+            // Cascade close animation — staggered removal
+            var remaining = activeAlerts.slice();
+            remaining.forEach(function(box, i) {
+                setTimeout(function() {
+                    dismissBox(box);
+                }, i * 60);
+            });
+            activeAlerts = [];
+        }
+
+        function checkFinalBoss() {
+            if (finalBossShown) return;
+            if (totalSpawned >= 15 || Date.now() - cascadeStartTime > 12000) {
+                finalBossShown = true;
+                showFinalBoss();
+            }
+        }
+
+        function showFinalBoss() {
+            var box = document.createElement('div');
+            alertZIndex++;
+            box.style.cssText = 'position:fixed;z-index:' + alertZIndex + ';background:#c0c0c0;border:3px outset #dfdfdf;' +
+                'box-shadow:4px 4px 0 rgba(0,0,0,0.4);font-family:Tahoma,Arial,sans-serif;font-size:14px;color:#000;width:420px;cursor:default;user-select:none;';
+            box.style.left = Math.max(40, (window.innerWidth / 2 - 210)) + 'px';
+            box.style.top = Math.max(40, (window.innerHeight / 2 - 100)) + 'px';
+
+            var titleBar = document.createElement('div');
+            titleBar.style.cssText = 'background:linear-gradient(90deg,#800000,#d01010);color:white;padding:4px 6px;font-weight:bold;font-size:13px;display:flex;justify-content:space-between;align-items:center;';
+            var titleText = document.createElement('span');
+            titleText.textContent = '\u2620\uFE0F FINAL WARNING';
+            titleBar.appendChild(titleText);
+            box.appendChild(titleBar);
+
+            var body = document.createElement('div');
+            body.style.cssText = 'padding:20px 16px;display:flex;align-items:flex-start;gap:12px;background:#c0c0c0;';
+            body.innerHTML = '<span style="font-size:36px;">\u2622\uFE0F</span><span style="padding-top:8px;font-size:14px;font-weight:bold;">FORMAT C:\\ ?</span>';
+            box.appendChild(body);
+
+            var btnRow = document.createElement('div');
+            btnRow.style.cssText = 'text-align:center;padding:8px 12px 12px;background:#c0c0c0;display:flex;justify-content:center;gap:16px;';
+            var btnStyle = 'background:#c0c0c0;border:2px outset #dfdfdf;padding:4px 20px;font-size:12px;font-family:Tahoma,Arial,sans-serif;cursor:pointer;font-weight:bold;';
+
+            var yesBtn = document.createElement('button');
+            yesBtn.textContent = 'YES';
+            yesBtn.style.cssText = btnStyle;
+            var defYesBtn = document.createElement('button');
+            defYesBtn.textContent = 'DEFINITELY YES';
+            defYesBtn.style.cssText = btnStyle;
+
+            btnRow.appendChild(yesBtn);
+            btnRow.appendChild(defYesBtn);
+            box.appendChild(btnRow);
+
+            document.body.appendChild(box);
+            activeAlerts.push(box);
+            shakeBox(box);
+
+            function handleFinalDismiss() {
+                dismissAll();
+            }
+            yesBtn.addEventListener('click', handleFinalDismiss);
+            defYesBtn.addEventListener('click', handleFinalDismiss);
+        }
+
+        function createAlert(msg) {
+            if (activeAlerts.length >= 20) return;
+            totalSpawned++;
+            alertZIndex++;
+            var box = document.createElement('div');
+            box.style.cssText = 'position:fixed;z-index:' + alertZIndex + ';background:#c0c0c0;border:2px outset #dfdfdf;' +
+                'box-shadow:2px 2px 0 rgba(0,0,0,0.3);font-family:Tahoma,Arial,sans-serif;font-size:12px;color:#000;width:320px;cursor:default;user-select:none;';
+            // Random position across screen
+            var maxLeft = Math.max(100, window.innerWidth - 360);
+            var maxTop = Math.max(60, window.innerHeight - 200);
+            box.style.left = (40 + Math.random() * maxLeft) + 'px';
+            box.style.top = (30 + Math.random() * maxTop) + 'px';
+
+            // Title bar
+            var titleBar = document.createElement('div');
+            titleBar.style.cssText = 'background:linear-gradient(90deg,#000080,#1084d0);color:white;padding:3px 5px;font-weight:bold;font-size:12px;display:flex;justify-content:space-between;align-items:center;';
+            var titleText = document.createElement('span');
+            titleText.textContent = msg.title;
+            var closeBtn = document.createElement('button');
+            closeBtn.textContent = '\u2715';
+            closeBtn.style.cssText = 'background:#c0c0c0;border:1px outset #dfdfdf;font-size:10px;width:16px;height:16px;cursor:pointer;padding:0;line-height:1;';
+            titleBar.appendChild(titleText);
+            titleBar.appendChild(closeBtn);
+            box.appendChild(titleBar);
+
+            // Body
+            var body = document.createElement('div');
+            body.style.cssText = 'padding:16px 12px;display:flex;align-items:flex-start;gap:10px;background:#c0c0c0;';
+            body.innerHTML = '<span style="font-size:28px;">\u26A0\uFE0F</span><span style="padding-top:6px;">' + msg.body + '</span>';
+            box.appendChild(body);
+
+            // OK button
+            var btnRow = document.createElement('div');
+            btnRow.style.cssText = 'text-align:center;padding:6px 12px 10px;background:#c0c0c0;';
+            var okBtn = document.createElement('button');
+            okBtn.textContent = 'OK';
+            okBtn.style.cssText = 'background:#c0c0c0;border:2px outset #dfdfdf;padding:2px 24px;font-size:12px;font-family:Tahoma,Arial,sans-serif;cursor:pointer;';
+            btnRow.appendChild(okBtn);
+            box.appendChild(btnRow);
+
+            document.body.appendChild(box);
+            activeAlerts.push(box);
+
+            // Entrance shake
+            shakeBox(box);
+
+            // X button: dismiss normally (no spawn)
+            closeBtn.addEventListener('click', function() {
+                dismissBox(box);
+            });
+
+            // OK button: HYDRA — spawn 2 new dialogs
+            okBtn.addEventListener('click', function() {
+                dismissBox(box);
+                if (activeAlerts.length < 20 && !finalBossShown) {
+                    setTimeout(function() { createAlert(getRandomMsg()); }, 80);
+                    setTimeout(function() { createAlert(getRandomMsg()); }, 200);
+                }
+                checkFinalBoss();
+            });
+        }
+
+        // Initial burst: 6-8 dialogs at 150ms stagger
+        var cascadeStartTime = Date.now();
+        var initialCount = 6 + Math.floor(Math.random() * 3);
+        for (var i = 0; i < initialCount; i++) {
+            (function(idx) {
+                cascadeTimers.push(setTimeout(function() {
+                    createAlert(getRandomMsg());
+                }, idx * 150));
+            })(i);
+        }
+
+        // Final boss trigger check (time-based fallback)
+        cascadeTimers.push(setTimeout(function() {
+            checkFinalBoss();
+        }, 12000));
+
+        // Auto-dismiss safety net at 20s
+        cascadeTimers.push(setTimeout(function() {
+            dismissAll();
+            cascadeTimers.forEach(function(id) { clearTimeout(id); clearInterval(id); });
+        }, 20000));
     }
 
     // --- Ticket Count Spin (click 10 times) ---
@@ -218,7 +620,6 @@
                 document.removeEventListener('keypress', matrixSpoonHandler);
                 matrixSpoonHandler = null;
             }
-            konamiCallback = null;
             // Remove leftover easter egg elements
             document.querySelectorAll('.matrix-quote, .matrix-click-char, .matrix-trail-char, .matrix-click-overlay, .matrix-rabbit').forEach(function(el) { el.remove(); });
             var clearCtx = canvas.getContext('2d');
@@ -447,13 +848,78 @@
         };
         document.addEventListener('mousemove', matrixMoveHandler);
 
-        // --- Konami: Invert Gravity ---
+        // --- Konami: "System Failure" ---
         konamiCallback = function() {
-            // Flip all column speeds negative (rain goes up)
-            for (var i = 0; i < columns.length; i++) {
-                columns[i].speed = -(0.4 + Math.random() * 0.6);
+            // Phase 1: Green flash (0-200ms) — two pulses
+            var flash = document.createElement('div');
+            flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:100010;pointer-events:none;background:#00ff41;opacity:0;';
+            document.body.appendChild(flash);
+
+            // Pulse 1: 0→0.5→0
+            flash.style.transition = 'opacity 0.05s';
+            requestAnimationFrame(function() { flash.style.opacity = '0.5'; });
+            setTimeout(function() { flash.style.opacity = '0'; }, 60);
+            // Pulse 2: 0→0.3→0
+            setTimeout(function() {
+                flash.style.opacity = '0.3';
+                setTimeout(function() {
+                    flash.style.opacity = '0';
+                    setTimeout(function() { flash.remove(); }, 100);
+                }, 60);
+            }, 120);
+
+            // Phase 2: Glitch slice (200-800ms)
+            var content = document.querySelector('.thebeacon-content');
+            if (content) {
+                var glitchSteps = [
+                    { delay: 200, clip: 'inset(20% 0 60% 0)', tx: '8px' },
+                    { delay: 350, clip: 'inset(50% 0 20% 0)', tx: '-12px' },
+                    { delay: 500, clip: 'inset(10% 0 70% 0)', tx: '15px' },
+                    { delay: 650, clip: 'inset(40% 0 30% 0)', tx: '-6px' },
+                ];
+                var origClip = content.style.clipPath || '';
+                var origTransform = content.style.transform || '';
+                glitchSteps.forEach(function(step) {
+                    var t1 = setTimeout(function() {
+                        content.style.clipPath = step.clip;
+                        content.style.transform = 'translateX(' + step.tx + ')';
+                    }, step.delay);
+                    var t2 = setTimeout(function() {
+                        content.style.clipPath = origClip;
+                        content.style.transform = origTransform;
+                    }, step.delay + 100);
+                    matrixEasterEggTimers.push(t1, t2);
+                });
+                var t3 = setTimeout(function() {
+                    content.style.clipPath = origClip;
+                    content.style.transform = origTransform;
+                }, 800);
+                matrixEasterEggTimers.push(t3);
             }
-            // After 30 seconds, flip back to normal from current positions
+
+            // Phase 3: "SYSTEM FAILURE" text (400-2500ms)
+            var failText = document.createElement('div');
+            failText.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:100009;pointer-events:none;display:flex;justify-content:center;align-items:center;opacity:0;transition:opacity 0.3s;';
+            failText.innerHTML = '<div style="font-family:Courier New,monospace;font-size:4rem;color:#00ff41;text-shadow:0 0 30px #00ff41,0 0 60px rgba(0,255,65,0.4);letter-spacing:0.3em;text-align:center;">SYSTEM FAILURE</div>';
+            document.body.appendChild(failText);
+            var t4 = setTimeout(function() { failText.style.opacity = '1'; }, 400);
+            var t5 = setTimeout(function() {
+                failText.style.opacity = '0';
+                setTimeout(function() { failText.remove(); }, 400);
+            }, 2200);
+            matrixEasterEggTimers.push(t4, t5);
+
+            // Phase 4: Rain reversal with x-offset scatter (from 800ms)
+            var t6 = setTimeout(function() {
+                for (var i = 0; i < columns.length; i++) {
+                    columns[i].speed = -(0.4 + Math.random() * 0.6);
+                    // Brief x-offset scatter: shift column position randomly
+                    columns[i].y += (Math.random() - 0.5) * 8;
+                }
+            }, 800);
+            matrixEasterEggTimers.push(t6);
+
+            // Revert rain after 30s
             var revertTimer = setTimeout(function() {
                 for (var i = 0; i < columns.length; i++) {
                     columns[i].speed = 0.4 + Math.random() * 0.6;
@@ -463,27 +929,28 @@
         };
 
         // --- Type "spoon": There Is No Spoon ---
+        function doSpoonOverlay() {
+            var overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;pointer-events:none;opacity:0;transition:opacity 0.3s;';
+            overlay.innerHTML = '<div style="font-family:Courier New,monospace;font-size:3rem;color:#00ff41;text-shadow:0 0 20px #00ff41,0 0 40px rgba(0,255,65,0.3);text-align:center;line-height:1.6;">There is no spoon</div>';
+            document.body.appendChild(overlay);
+            var spoonAudio = new Audio('/static/audio/there-is-no-spoon.mp3');
+            spoonAudio.play().catch(function() {});
+            requestAnimationFrame(function() { overlay.style.opacity = '1'; });
+            var revertTimer = setTimeout(function() {
+                overlay.style.opacity = '0';
+                setTimeout(function() { overlay.remove(); }, 300);
+            }, 3000);
+            matrixEasterEggTimers.push(revertTimer);
+        }
+
         var spoonBuffer = '';
         matrixSpoonHandler = function(e) {
             spoonBuffer += e.key.toLowerCase();
             if (spoonBuffer.length > 10) spoonBuffer = spoonBuffer.slice(-10);
             if (spoonBuffer.indexOf('spoon') !== -1) {
                 spoonBuffer = '';
-                // Full-screen overlay with the quote (no DOM mutation)
-                var overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;pointer-events:none;opacity:0;transition:opacity 0.3s;';
-                overlay.innerHTML = '<div style="font-family:Courier New,monospace;font-size:3rem;color:#00ff41;text-shadow:0 0 20px #00ff41,0 0 40px rgba(0,255,65,0.3);text-align:center;line-height:1.6;">There is no spoon</div>';
-                document.body.appendChild(overlay);
-                var spoonAudio = new Audio('/static/audio/there-is-no-spoon.mp3');
-                spoonAudio.play().catch(function() {});
-                // Fade in
-                requestAnimationFrame(function() { overlay.style.opacity = '1'; });
-                // Fade out after 3s
-                var revertTimer = setTimeout(function() {
-                    overlay.style.opacity = '0';
-                    setTimeout(function() { overlay.remove(); }, 300);
-                }, 3000);
-                matrixEasterEggTimers.push(revertTimer);
+                doSpoonOverlay();
             }
         };
         document.addEventListener('keypress', matrixSpoonHandler);
@@ -532,6 +999,8 @@
         window._debugEasterEggs.whiteRabbit = doWhiteRabbit;
         window._debugEasterEggs.matrixQuote = showMatrixQuote;
         window._debugEasterEggs.matrixGlitch = glitchRandomCard;
+        window._debugEasterEggs.matrixSpoon = doSpoonOverlay;
+        window._debugEasterEggs.matrixGravity = konamiCallback;
 
         // Check every 45-120s
         function scheduleWhiteRabbit() {
@@ -1422,6 +1891,60 @@
             beeTimers.push(hideTimer);
         };
         window._debugEasterEggs.beeSwarm = triggerSwarm;
+        window._debugEasterEggs.spawnButterfly = function() {
+            var bee = document.createElement('div');
+            bee.className = 'bee bee--butterfly';
+            bee.textContent = '\uD83E\uDD8B'; // 🦋
+            bee.style.position = 'absolute';
+            bee.style.zIndex = '10000';
+            bee.style.fontSize = rand(24, 34) + 'px';
+            container.appendChild(bee);
+            var goRight = Math.random() > 0.5;
+            var sx = goRight ? -60 : W + 60;
+            var ex = goRight ? W + 60 : -60;
+            var sy = rand(50, H - 80);
+            var dur = rand(8000, 14000);
+            var st = Date.now();
+            var flip = goRight ? 'scaleX(-1)' : 'scaleX(1)';
+            (function anim() {
+                var p = Math.min((Date.now() - st) / dur, 1);
+                var x = sx + (ex - sx) * p;
+                var y = sy + Math.sin(p * Math.PI * 5) * 70;
+                bee.style.left = x + 'px';
+                bee.style.top = y + 'px';
+                bee.style.transform = flip + ' rotate(' + (Math.sin(p * 20) * 10) + 'deg)';
+                bee.style.opacity = p < 0.05 ? String(p / 0.05) : (p > 0.92 ? String((1 - p) / 0.08) : '0.9');
+                if (p < 1) requestAnimationFrame(anim);
+                else bee.remove();
+            })();
+        };
+        window._debugEasterEggs.spawnLadybug = function() {
+            var bee = document.createElement('div');
+            bee.className = 'bee bee--ladybug';
+            bee.textContent = '\uD83D\uDC1E'; // 🐞
+            bee.style.position = 'absolute';
+            bee.style.zIndex = '10000';
+            bee.style.fontSize = rand(22, 32) + 'px';
+            container.appendChild(bee);
+            var goRight = Math.random() > 0.5;
+            var sx = goRight ? -60 : W + 60;
+            var ex = goRight ? W + 60 : -60;
+            var sy = rand(50, H - 80);
+            var dur = rand(8000, 14000);
+            var st = Date.now();
+            var flip = goRight ? 'scaleX(-1)' : 'scaleX(1)';
+            (function anim() {
+                var p = Math.min((Date.now() - st) / dur, 1);
+                var x = sx + (ex - sx) * p;
+                var y = sy + Math.sin(p * Math.PI * 3) * 50;
+                bee.style.left = x + 'px';
+                bee.style.top = y + 'px';
+                bee.style.transform = flip + ' rotate(' + (Math.sin(p * 15) * 8) + 'deg)';
+                bee.style.opacity = p < 0.05 ? String(p / 0.05) : (p > 0.92 ? String((1 - p) / 0.08) : '0.9');
+                if (p < 1) requestAnimationFrame(anim);
+                else bee.remove();
+            })();
+        };
         window._debugEasterEggs.rainbowBee = function() {
             // Spawn a single rainbow bee
             var bee = document.createElement('div');
@@ -1470,14 +1993,167 @@
 
     }
 
-    // --- MSP Gold Konami: BSOD ---
-    function handleGoldKonami(active) {
+    // --- Japan Theme (Sakura) ---
+    var japanTimers = [];
+    var japanResizeHandler = null;
+
+    function handleJapanAnimation(active) {
+        var container = document.getElementById('japan-container');
+        if (!container) return;
+
         if (!active) {
-            if (konamiCallback === triggerBSOD) konamiCallback = null;
+            japanTimers.forEach(function(id) { clearInterval(id); clearTimeout(id); });
+            japanTimers = [];
+            if (japanResizeHandler) {
+                window.removeEventListener('resize', japanResizeHandler);
+                japanResizeHandler = null;
+            }
+            document.querySelectorAll('.sakura-petal, .lucky-cat, .zen-overlay').forEach(function(el) { el.remove(); });
+            container.innerHTML = '';
             return;
         }
-        konamiCallback = triggerBSOD;
+
+        var W = window.innerWidth;
+        var H = window.innerHeight;
+        japanResizeHandler = function() { W = window.innerWidth; H = window.innerHeight; };
+        window.addEventListener('resize', japanResizeHandler);
+
+        function rand(min, max) { return min + Math.random() * (max - min); }
+
+        // --- Sakura Petal Fall ---
+        function spawnPetal() {
+            var petal = document.createElement('div');
+            petal.className = 'sakura-petal';
+            petal.textContent = '\uD83C\uDF38'; // 🌸
+            petal.style.fontSize = rand(14, 28) + 'px';
+            petal.style.left = rand(-20, W + 20) + 'px';
+            petal.style.top = '-30px';
+            petal.style.opacity = '0';
+            container.appendChild(petal);
+
+            var fallDuration = rand(5000, 9000);
+            var swayAmplitude = rand(30, 80);
+            var swaySpeed = rand(2, 4);
+            var startX = parseFloat(petal.style.left);
+            var startTime = Date.now();
+            var rotSpeed = rand(-180, 180);
+
+            function animatePetal() {
+                var elapsed = Date.now() - startTime;
+                var p = elapsed / fallDuration;
+                if (p >= 1) { petal.remove(); return; }
+
+                var y = -30 + (H + 60) * p;
+                var x = startX + Math.sin(p * Math.PI * swaySpeed) * swayAmplitude;
+                var rot = elapsed / 1000 * rotSpeed;
+
+                // Fade in/out
+                var opacity = 0.9;
+                if (p < 0.1) opacity = p / 0.1 * 0.9;
+                else if (p > 0.85) opacity = (1 - p) / 0.15 * 0.9;
+
+                petal.style.top = y + 'px';
+                petal.style.left = x + 'px';
+                petal.style.opacity = String(opacity);
+                petal.style.transform = 'rotate(' + rot + 'deg)';
+                requestAnimationFrame(animatePetal);
+            }
+            requestAnimationFrame(animatePetal);
+        }
+
+        // Initial burst
+        for (var i = 0; i < 5; i++) {
+            (function(delay) {
+                var t = setTimeout(function() { spawnPetal(); }, delay);
+                japanTimers.push(t);
+            })(i * 200);
+        }
+
+        // Continuous spawning
+        var petalSpawnId = setInterval(function() {
+            spawnPetal();
+        }, 800 + Math.random() * 700);
+        japanTimers.push(petalSpawnId);
+
+        // --- Lucky Cat Peek ---
+        function doLuckyCat() {
+            var cat = document.createElement('div');
+            cat.className = 'lucky-cat';
+            cat.textContent = '\uD83D\uDC31'; // 🐱
+            document.body.appendChild(cat);
+
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    cat.classList.add('lucky-cat--visible');
+                    cat.classList.add('lucky-cat--wave');
+                });
+            });
+
+            var hideTimer = setTimeout(function() {
+                cat.classList.remove('lucky-cat--visible');
+                cat.classList.remove('lucky-cat--wave');
+                setTimeout(function() { cat.remove(); }, 700);
+            }, 4000);
+            japanTimers.push(hideTimer);
+        }
+
+        function scheduleLuckyCat() {
+            var delay = 30000 + Math.random() * 30000;
+            var t = setTimeout(function() {
+                if (Math.random() < 0.008) doLuckyCat();
+                scheduleLuckyCat();
+            }, delay);
+            japanTimers.push(t);
+        }
+        scheduleLuckyCat();
+
+        // --- Zen Mode Overlay ---
+        function showZenMode() {
+            var overlay = document.createElement('div');
+            overlay.className = 'zen-overlay';
+            overlay.innerHTML = '<div class="zen-overlay__icon">\u26E9\uFE0F</div><div class="zen-overlay__text">Zen</div>';
+            document.body.appendChild(overlay);
+
+            requestAnimationFrame(function() {
+                overlay.classList.add('zen-overlay--visible');
+            });
+
+            function dismiss() {
+                overlay.classList.remove('zen-overlay--visible');
+                setTimeout(function() { overlay.remove(); }, 500);
+            }
+
+            overlay.addEventListener('click', dismiss);
+            var autoTimer = setTimeout(dismiss, 5000);
+            japanTimers.push(autoTimer);
+        }
+
+        // --- Sakura Burst (for debug/konami) ---
+        function sakuraBurst() {
+            for (var i = 0; i < 40; i++) {
+                (function(delay) {
+                    var t = setTimeout(function() { spawnPetal(); }, delay);
+                    japanTimers.push(t);
+                })(i * 50);
+            }
+        }
+
+        // --- Konami: sakura storm + zen ---
+        konamiCallback = function() {
+            sakuraBurst();
+            var zenTimer = setTimeout(showZenMode, 2000);
+            japanTimers.push(zenTimer);
+        };
+
+        // Expose for debug
+        window._debugEasterEggs = window._debugEasterEggs || {};
+        window._debugEasterEggs.sakuraBurst = sakuraBurst;
+        window._debugEasterEggs.luckyCat = doLuckyCat;
+        window._debugEasterEggs.zenMode = showZenMode;
     }
+
+    // handleGoldKonami removed — gold uses the default random pool,
+    // and konamiCallback is now reset centrally before handler calls.
 
     function triggerBSOD() {
         var bsodAudio = new Audio('/static/audio/windows-bsod.mp3');
@@ -1552,23 +2228,58 @@
             localStorage.setItem(STORAGE_KEYS.colorTheme, color);
 
             // Toggle Easter eggs
+            konamiCallback = null;
             handleMatrixRain(color === 'matrix');
             handleBeeAnimation(color === 'bee');
             handleBeeconName(color === 'bee');
-            handleGoldKonami(color === 'gold');
+            handleJapanAnimation(color === 'japan');
         });
 
         // Initialize Easter eggs on page load
+        konamiCallback = null;
         handleMatrixRain(currentColor === 'matrix');
         handleBeeAnimation(currentColor === 'bee');
         handleBeeconName(currentColor === 'bee');
-        handleGoldKonami(currentColor === 'gold');
+        handleJapanAnimation(currentColor === 'japan');
     }
 
     // Expose IIFE-level easter eggs for debug menu
     window._debugEasterEggs = window._debugEasterEggs || {};
-    window._debugEasterEggs.disco = triggerDisco;
     window._debugEasterEggs.bsod = triggerBSOD;
+    window._debugEasterEggs.retroCRT = triggerRetro;
+    window._debugEasterEggs.nyanCat = triggerNyanCat;
+    window._debugEasterEggs.alertCascade = triggerAlertCascade;
+    window._debugEasterEggs.lockThemes = function() {
+        localStorage.removeItem(STORAGE_KEYS.easterEggsUnlocked);
+        var picker = document.getElementById('color-theme-picker');
+        if (picker) picker.classList.remove('theme-picker--unlocked');
+        // If current theme is a hidden one, reset to default
+        var current = localStorage.getItem(STORAGE_KEYS.colorTheme) || '';
+        if (['matrix', 'bee', 'japan'].indexOf(current) !== -1) {
+            localStorage.setItem(STORAGE_KEYS.colorTheme, '');
+            document.documentElement.removeAttribute('data-color-theme');
+            konamiCallback = null;
+            handleMatrixRain(false);
+            handleBeeAnimation(false);
+            handleBeeconName(false);
+            handleJapanAnimation(false);
+        }
+    };
+    window._debugEasterEggs.resetToDefault = function() {
+        localStorage.setItem(STORAGE_KEYS.colorTheme, '');
+        localStorage.setItem(STORAGE_KEYS.theme, 'light');
+        document.documentElement.removeAttribute('data-color-theme');
+        document.documentElement.setAttribute('data-theme', 'light');
+        konamiCallback = null;
+        handleMatrixRain(false);
+        handleBeeAnimation(false);
+        handleBeeconName(false);
+        handleJapanAnimation(false);
+        var swatches = document.querySelectorAll('.theme-swatch');
+        swatches.forEach(function(s) {
+            s.classList.toggle('active', s.dataset.color === '');
+        });
+    };
 
     // --- Sidebar Collapse Toggle ---
     var sidebarToggle = document.getElementById('sidebar-toggle');
@@ -1607,6 +2318,8 @@
                 { text: 'Bear Peek', key: 'bearPeek', icon: '\uD83D\uDC3B' },
                 { text: 'Rainbow Bee', key: 'rainbowBee', icon: '\uD83C\uDF08' },
                 { text: 'Bee Swarm', key: 'beeSwarm', icon: '\uD83D\uDC1D\uD83D\uDC1D' },
+                { text: 'Butterfly', key: 'spawnButterfly', icon: '\uD83E\uDD8B' },
+                { text: 'Ladybug', key: 'spawnLadybug', icon: '\uD83D\uDC1E' },
             ]
         },
         {
@@ -1617,6 +2330,18 @@
                 { text: 'White Rabbit', key: 'whiteRabbit', icon: '\uD83D\uDC07' },
                 { text: 'Matrix Quote', key: 'matrixQuote', icon: '\uD83D\uDCAC' },
                 { text: 'Card Glitch', key: 'matrixGlitch', icon: '\u26A1' },
+                { text: 'No Spoon', key: 'matrixSpoon', icon: '\uD83E\uDD44' },
+                { text: 'Invert Gravity', key: 'matrixGravity', icon: '\u2B06\uFE0F' },
+            ]
+        },
+        {
+            label: '\uD83C\uDF38 Japan Theme',
+            note: 'Requires japan theme active',
+            color: '#E91E8D',
+            buttons: [
+                { text: 'Sakura Burst', key: 'sakuraBurst', icon: '\uD83C\uDF38' },
+                { text: 'Lucky Cat', key: 'luckyCat', icon: '\uD83D\uDC31' },
+                { text: 'Zen Mode', key: 'zenMode', icon: '\u26E9\uFE0F' },
             ]
         },
         {
@@ -1650,8 +2375,19 @@
             note: 'Always available',
             color: '#f472b6',
             buttons: [
-                { text: 'Disco Mode', key: 'disco', icon: '\uD83D\uDD7A' },
                 { text: 'BSOD', key: 'bsod', icon: '\uD83D\uDCBB' },
+                { text: 'Retro CRT', key: 'retroCRT', icon: '\uD83D\uDCFA' },
+                { text: 'Nyan Cat', key: 'nyanCat', icon: '\uD83D\uDC31' },
+                { text: 'Alert Cascade', key: 'alertCascade', icon: '\u26A0\uFE0F' },
+            ]
+        },
+        {
+            label: '\uD83D\uDD27 Settings',
+            note: 'Theme management',
+            color: '#888',
+            buttons: [
+                { text: 'Lock Hidden Themes', key: 'lockThemes', icon: '\uD83D\uDD12' },
+                { text: 'Reset to Default', key: 'resetToDefault', icon: '\u21BA' },
             ]
         }
     ];
