@@ -76,7 +76,7 @@ def _validate_config(config):
     })
 
     config.setdefault('alert_thresholds', {
-        'warning': 90, 'danger': 100, 'critical': 110, 'emergency': 120
+        'calm': 50, 'good': 70, 'warning': 90, 'danger': 100, 'emergency': 110
     })
 
     dashboard = config.setdefault('dashboard', {})

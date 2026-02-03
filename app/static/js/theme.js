@@ -49,12 +49,39 @@
         var tapTimer = null;
         var targets = document.querySelectorAll('.page-header__title, .side-panel__title');
 
+        var hints = [
+            { at: 5,  text: 'Hmm, that tickles...' },
+            { at: 15, text: 'Ok, you\'re onto something. Keep going.' },
+            { at: 30, text: 'Halfway there... don\'t stop now.' },
+            { at: 50, text: 'Almost... just a bit more.' },
+            { at: 60, text: 'So close! Keep clicking!' },
+        ];
+
+        function showHintToast(text) {
+            // Remove any existing hint toast
+            var old = document.querySelector('.easter-egg-toast');
+            if (old) old.remove();
+            var toast = document.createElement('div');
+            toast.className = 'easter-egg-toast';
+            toast.textContent = text;
+            document.body.appendChild(toast);
+            setTimeout(function() { toast.remove(); }, 2500);
+        }
+
         targets.forEach(function(el) {
             el.style.cursor = 'default';
             el.addEventListener('click', function() {
                 tapCount++;
                 if (tapTimer) clearTimeout(tapTimer);
                 tapTimer = setTimeout(function() { tapCount = 0; }, 30000);
+
+                // Check for hint milestones
+                for (var i = 0; i < hints.length; i++) {
+                    if (tapCount === hints[i].at) {
+                        showHintToast(hints[i].text);
+                        break;
+                    }
+                }
 
                 if (tapCount >= 69) {
                     tapCount = 0;
@@ -67,11 +94,7 @@
                     localStorage.setItem(STORAGE_KEYS.easterEggsUnlocked, 'true');
 
                     // Show toast
-                    var toast = document.createElement('div');
-                    toast.className = 'easter-egg-toast';
-                    toast.textContent = 'Developer themes unlocked!';
-                    document.body.appendChild(toast);
-                    setTimeout(function() { toast.remove(); }, 3000);
+                    showHintToast('A NEW HAND TOUCHES THE BEACON');
                 }
             });
         });
@@ -197,7 +220,7 @@
             }
             konamiCallback = null;
             // Remove leftover easter egg elements
-            document.querySelectorAll('.matrix-quote, .matrix-click-char, .matrix-trail-char, .matrix-click-overlay').forEach(function(el) { el.remove(); });
+            document.querySelectorAll('.matrix-quote, .matrix-click-char, .matrix-trail-char, .matrix-click-overlay, .matrix-rabbit').forEach(function(el) { el.remove(); });
             var clearCtx = canvas.getContext('2d');
             clearCtx.clearRect(0, 0, canvas.width, canvas.height);
             return;
@@ -464,6 +487,62 @@
             }
         };
         document.addEventListener('keypress', matrixSpoonHandler);
+
+        // --- White Rabbit ---
+        function doWhiteRabbit() {
+            var rabbit = document.createElement('div');
+            rabbit.className = 'matrix-rabbit';
+            rabbit.textContent = '\uD83D\uDC07'; // 🐇
+
+            var goingRight = Math.random() > 0.5;
+            var startX = goingRight ? -60 : window.innerWidth + 60;
+            var endX = goingRight ? window.innerWidth + 60 : -60;
+            var rabbitY = 100 + Math.random() * (window.innerHeight - 200);
+            var crossDuration = 1800 + Math.random() * 1200; // 1.8-3s
+
+            rabbit.style.left = startX + 'px';
+            rabbit.style.top = rabbitY + 'px';
+            rabbit.style.transform = goingRight ? 'scaleX(-1)' : 'scaleX(1)';
+            document.body.appendChild(rabbit);
+
+            var startTime = Date.now();
+
+            function animateRabbit() {
+                var elapsed = Date.now() - startTime;
+                var p = Math.min(elapsed / crossDuration, 1);
+                var x = startX + (endX - startX) * p;
+                rabbit.style.left = x + 'px';
+
+                if (p < 1) {
+                    requestAnimationFrame(animateRabbit);
+                } else {
+                    rabbit.remove();
+                }
+            }
+            requestAnimationFrame(animateRabbit);
+        }
+
+        function maybeWhiteRabbit() {
+            if (Math.random() > 0.005) return;
+            doWhiteRabbit();
+        }
+
+        // Expose for debug menu
+        window._debugEasterEggs = window._debugEasterEggs || {};
+        window._debugEasterEggs.whiteRabbit = doWhiteRabbit;
+        window._debugEasterEggs.matrixQuote = showMatrixQuote;
+        window._debugEasterEggs.matrixGlitch = glitchRandomCard;
+
+        // Check every 45-120s
+        function scheduleWhiteRabbit() {
+            var delay = 45000 + Math.random() * 75000;
+            var t = setTimeout(function() {
+                maybeWhiteRabbit();
+                scheduleWhiteRabbit();
+            }, delay);
+            matrixEasterEggTimers.push(t);
+        }
+        scheduleWhiteRabbit();
     }
 
     // --- Bee-con Name Swap ---
@@ -493,7 +572,6 @@
     // --- Bee Easter Egg (the full experience) ---
     var beeTimers = [];
     var beeMoveHandler = null;
-    var beeIdleMoveHandler = null;
     var beeResizeHandler = null;
 
     function handleBeeAnimation(active) {
@@ -507,16 +585,18 @@
                 document.removeEventListener('mousemove', beeMoveHandler);
                 beeMoveHandler = null;
             }
-            if (beeIdleMoveHandler) {
-                document.removeEventListener('mousemove', beeIdleMoveHandler);
-                beeIdleMoveHandler = null;
-            }
             if (beeResizeHandler) {
                 window.removeEventListener('resize', beeResizeHandler);
                 beeResizeHandler = null;
             }
             // Remove leftover easter egg elements
-            document.querySelectorAll('.bee-bear, .bee-hive-cluster, .bee-hive-bee').forEach(function(el) { el.remove(); });
+            document.querySelectorAll('.bee-bear, .bee-landing, .honey-drip, .bee-procession, .bee-row-highlight').forEach(function(el) {
+                if (el.classList.contains('bee-row-highlight')) {
+                    el.classList.remove('bee-row-highlight');
+                } else {
+                    el.remove();
+                }
+            });
             container.innerHTML = '';
             return;
         }
@@ -558,7 +638,7 @@
         var activeFlowers = [];
 
         function createFlower() {
-            if (activeFlowers.length >= 5) return; // Max on screen
+            if (activeFlowers.length >= 4) return; // Max on screen
 
             var isHoneycomb = Math.random() < 0.35;
             var flower = document.createElement('div');
@@ -571,12 +651,13 @@
             flower.style.fontSize = rand(24, 40) + 'px';
             container.appendChild(flower);
 
-            var flowerObj = { el: flower, x: fx, y: fy };
+            var flowerObj = { el: flower, x: fx, y: fy, fading: false };
             activeFlowers.push(flowerObj);
 
-            // Flowers live for 12-20 seconds then fade away
-            var lifespan = rand(12000, 20000);
+            // Flowers live for 60-120 seconds then fade away
+            var lifespan = rand(30000, 60000);
             setTimeout(function() {
+                flowerObj.fading = true;
                 flower.classList.add('bee-flower--fading');
                 setTimeout(function() {
                     flower.remove();
@@ -769,10 +850,10 @@
             bee.style.position = 'absolute';
             bee.style.zIndex = '10000';
 
-            // 0.25% chance of rainbow bee
-            var isRainbow = Math.random() < 0.0025;
-            // 0.5% chance of a rare visitor (butterfly or ladybug)
-            var isVisitor = !isRainbow && Math.random() < 0.005;
+            // 0.02% chance of rainbow bee (~2-3 per day)
+            var isRainbow = Math.random() < 0.0002;
+            // 0.04% chance of a rare visitor (butterfly or ladybug, ~5 per day)
+            var isVisitor = !isRainbow && Math.random() < 0.0004;
 
             // Size variety: tiny worker, normal, or chonky queen
             var sizeRoll = Math.random();
@@ -842,8 +923,8 @@
                 cfg.diveDepth = rand(120, 250);
             } else if (patName === 'pollinate') {
                 cfg.flowerStops = [];
-                // Visit up to 3 active flowers
-                var shuffled = activeFlowers.slice().sort(function() { return Math.random() - 0.5; });
+                // Visit up to 3 active flowers (skip fading ones)
+                var shuffled = activeFlowers.filter(function(f) { return !f.fading; }).sort(function() { return Math.random() - 0.5; });
                 for (var f = 0; f < Math.min(shuffled.length, 3); f++) {
                     cfg.flowerStops.push({ x: shuffled[f].x, y: shuffled[f].y });
                 }
@@ -995,13 +1076,13 @@
         // Regular bee spawning
         var beeSpawnId = setInterval(function() {
             createBee();
-        }, rand(1800, 3200));
+        }, rand(3000, 5000));
         beeTimers.push(beeSpawnId);
 
         // Flower spawning
         var flowerSpawnId = setInterval(function() {
             createFlower();
-        }, rand(6000, 10000));
+        }, rand(10000, 18000));
         beeTimers.push(flowerSpawnId);
 
         // Occasional swarm burst
@@ -1022,7 +1103,7 @@
 
         // --- 5. Bear Peek ---
         function maybeBearPeek() {
-            if (Math.random() > 0.35) return; // 35% chance each check
+            if (Math.random() > 0.005) return; // 0.5% chance each check (~2-3 per day)
 
             var bear = document.createElement('div');
             bear.className = 'bee-bear';
@@ -1031,6 +1112,13 @@
             var edges = ['left', 'right', 'bottom'];
             var edge = edges[Math.floor(Math.random() * edges.length)];
             bear.classList.add('bee-bear--' + edge);
+
+            // Random position along the chosen edge
+            if (edge === 'left' || edge === 'right') {
+                bear.style.top = (10 + Math.random() * 80) + '%';
+            } else {
+                bear.style.left = (10 + Math.random() * 80) + '%';
+            }
 
             document.body.appendChild(bear);
 
@@ -1075,179 +1163,293 @@
         }
         scheduleBearPeek();
 
-        // --- 7. Idle Hive-Building ---
-        var lastMoveTime = Date.now();
-        var hiveActive = false;
-        var hiveCluster = null;
-        var hiveBees = [];
+        // --- 6. Bee Landing on Ticket Row ---
+        function doBeeLanding() {
+            var rows = document.querySelectorAll('tr');
+            if (rows.length === 0) return;
 
-        beeIdleMoveHandler = function() {
-            lastMoveTime = Date.now();
-            // If hive is active, scatter it
-            if (hiveActive && hiveCluster) {
-                hiveActive = false;
-                hiveCluster.classList.add('bee-hive-cluster--dissolve');
-                var hc = hiveCluster;
-                setTimeout(function() { hc.remove(); }, 1000);
-                hiveCluster = null;
-                // Cancel crawl animation
-                if (hiveCrawlRAF) {
-                    cancelAnimationFrame(hiveCrawlRAF);
-                    hiveCrawlRAF = null;
-                }
-                // Scatter the hive bees outward
-                hiveBees.forEach(function(obj) {
-                    var el = obj.el;
-                    if (el.parentNode) {
-                        el.style.transition = 'left 1s ease-out, top 1s ease-out, opacity 1s ease-out';
-                        el.style.left = (Math.random() * W) + 'px';
-                        el.style.top = (Math.random() * H) + 'px';
-                        el.style.opacity = '0';
-                        setTimeout(function() { el.remove(); }, 1000);
-                    }
+            var row = rows[Math.floor(Math.random() * rows.length)];
+            var rect = row.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+
+            var bee = document.createElement('div');
+            bee.className = 'bee-landing';
+            bee.textContent = '\uD83D\uDC1D'; // 🐝
+
+            // Use absolute positioning so the bee scrolls with the page
+            var scrollX = window.scrollX || window.pageXOffset;
+            var scrollY = window.scrollY || window.pageYOffset;
+
+            // Start from random edge (document coords)
+            var startX = Math.random() > 0.5 ? -40 : W + 40;
+            var startY = scrollY + rand(50, H - 50);
+            bee.style.left = startX + 'px';
+            bee.style.top = startY + 'px';
+            document.body.appendChild(bee);
+
+            // Fly to the row (convert viewport rect to document coords)
+            var targetX = scrollX + rect.left + rand(20, rect.width - 20);
+            var targetY = scrollY + rect.top + rect.height / 2;
+
+            requestAnimationFrame(function() {
+                bee.classList.add('bee-landing--flying');
+                bee.style.left = targetX + 'px';
+                bee.style.top = targetY + 'px';
+            });
+
+            // Land after flight
+            var landTimer = setTimeout(function() {
+                bee.classList.remove('bee-landing--flying');
+                bee.classList.add('bee-landing--landed');
+                row.classList.add('bee-row-highlight');
+
+                // Sit for 3-5s then fly off
+                var restTime = 3000 + Math.random() * 2000;
+                var flyOffTimer = setTimeout(function() {
+                    bee.classList.remove('bee-landing--landed');
+                    row.classList.remove('bee-row-highlight');
+                    bee.classList.add('bee-landing--flying');
+                    var curScrollY = window.scrollY || window.pageYOffset;
+                    var exitX = Math.random() > 0.5 ? W + 60 : -60;
+                    var exitY = curScrollY + rand(50, H - 50);
+                    bee.style.left = exitX + 'px';
+                    bee.style.top = exitY + 'px';
+                    bee.style.transform = '';
+
+                    var removeTimer = setTimeout(function() { bee.remove(); }, 1600);
+                    beeTimers.push(removeTimer);
+                }, restTime);
+                beeTimers.push(flyOffTimer);
+            }, 1600);
+            beeTimers.push(landTimer);
+        }
+
+        function maybeBeeLanding() {
+            if (Math.random() > 0.008) return;
+            doBeeLanding();
+        }
+
+        // Check every 20-45s
+        function scheduleBeeLanding() {
+            var delay = 20000 + Math.random() * 25000;
+            var t = setTimeout(function() {
+                maybeBeeLanding();
+                scheduleBeeLanding();
+            }, delay);
+            beeTimers.push(t);
+        }
+        scheduleBeeLanding();
+
+        // --- 7. Honey Drip ---
+        function doHoneyDrip() {
+            var cards = document.querySelectorAll('.card');
+            if (cards.length === 0) return;
+
+            var card = cards[Math.floor(Math.random() * cards.length)];
+            // Card needs relative positioning for the drips
+            var origPosition = card.style.position;
+            if (getComputedStyle(card).position === 'static') {
+                card.style.position = 'relative';
+            }
+
+            var count = 3 + Math.floor(Math.random() * 4); // 3-6 drips
+            var drips = [];
+            for (var i = 0; i < count; i++) {
+                (function(idx) {
+                    var delay = idx * (150 + Math.random() * 300);
+                    var t = setTimeout(function() {
+                        var drip = document.createElement('div');
+                        drip.className = 'honey-drip';
+                        drip.style.left = (15 + Math.random() * (card.offsetWidth - 30)) + 'px';
+                        card.appendChild(drip);
+                        drips.push(drip);
+                    }, delay);
+                    beeTimers.push(t);
+                })(i);
+            }
+
+            // Clean up all drips after animation
+            var cleanupTimer = setTimeout(function() {
+                drips.forEach(function(d) { d.remove(); });
+                if (origPosition !== undefined) card.style.position = origPosition;
+            }, 4500);
+            beeTimers.push(cleanupTimer);
+        }
+
+        function maybeHoneyDrip() {
+            if (Math.random() > 0.003) return;
+            doHoneyDrip();
+        }
+
+        // Check every 30-60s
+        function scheduleHoneyDrip() {
+            var delay = 30000 + Math.random() * 30000;
+            var t = setTimeout(function() {
+                maybeHoneyDrip();
+                scheduleHoneyDrip();
+            }, delay);
+            beeTimers.push(t);
+        }
+        scheduleHoneyDrip();
+
+        // --- 8. Queen Bee Procession ---
+        function doQueenProcession() {
+            var procession = document.createElement('div');
+            procession.className = 'bee-procession';
+            document.body.appendChild(procession);
+
+            var goingRight = Math.random() > 0.5;
+            var startX = goingRight ? -80 : W + 80;
+            var endX = goingRight ? W + 80 : -80;
+            var baseY = rand(100, H - 150);
+            var duration = 6000 + Math.random() * 3000;
+            var startTime = Date.now();
+
+            // Queen element
+            var queen = document.createElement('div');
+            queen.className = 'bee-procession-queen';
+            queen.innerHTML = '\uD83D\uDC1D'; // 🐝
+            var crown = document.createElement('span');
+            crown.className = 'bee-crown';
+            crown.textContent = '\uD83D\uDC51'; // 👑
+            queen.appendChild(crown);
+            procession.appendChild(queen);
+
+            // Worker bees in V-formation (5-8)
+            var workerCount = 5 + Math.floor(Math.random() * 4);
+            var workers = [];
+            for (var i = 0; i < workerCount; i++) {
+                var w = document.createElement('div');
+                w.className = 'bee-procession-worker';
+                w.textContent = '\uD83D\uDC1D'; // 🐝
+                procession.appendChild(w);
+                // V-formation offsets: alternating sides, increasing distance
+                var row = Math.floor(i / 2) + 1;
+                var side = (i % 2 === 0) ? 1 : -1;
+                workers.push({
+                    el: w,
+                    offsetX: -row * 35 * (goingRight ? 1 : -1), // behind queen
+                    offsetY: side * row * 25,
+                    jitterPhase: Math.random() * Math.PI * 2,
+                    delay: row * 0.03 // slight lag behind queen
                 });
-                hiveBees = [];
             }
+
+            function animateProcession() {
+                var elapsed = Date.now() - startTime;
+                var p = Math.min(elapsed / duration, 1);
+
+                // Queen position with gentle wave
+                var qx = startX + (endX - startX) * p;
+                var qy = baseY + Math.sin(p * Math.PI * 4) * 20;
+                queen.style.left = qx + 'px';
+                queen.style.top = qy + 'px';
+                queen.style.transform = goingRight ? 'scaleX(-1)' : 'scaleX(1)';
+
+                // Workers follow
+                for (var i = 0; i < workers.length; i++) {
+                    var wk = workers[i];
+                    var wp = Math.max(0, Math.min(p - wk.delay, 1));
+                    var wx = startX + (endX - startX) * wp + wk.offsetX;
+                    var wy = baseY + Math.sin(wp * Math.PI * 4) * 20 + wk.offsetY;
+                    // Individual jitter
+                    wx += Math.sin(elapsed * 0.005 + wk.jitterPhase) * 4;
+                    wy += Math.cos(elapsed * 0.007 + wk.jitterPhase) * 3;
+                    wk.el.style.left = wx + 'px';
+                    wk.el.style.top = wy + 'px';
+                    wk.el.style.transform = goingRight ? 'scaleX(-1)' : 'scaleX(1)';
+                }
+
+                if (p < 1) {
+                    requestAnimationFrame(animateProcession);
+                } else {
+                    procession.remove();
+                }
+            }
+            requestAnimationFrame(animateProcession);
+        }
+
+        function maybeQueenProcession() {
+            if (Math.random() > 0.004) return;
+            doQueenProcession();
+        }
+
+        // Check every 40-80s
+        function scheduleQueenProcession() {
+            var delay = 40000 + Math.random() * 40000;
+            var t = setTimeout(function() {
+                maybeQueenProcession();
+                scheduleQueenProcession();
+            }, delay);
+            beeTimers.push(t);
+        }
+        scheduleQueenProcession();
+
+        // Expose forced triggers for debug menu
+        window._debugEasterEggs = window._debugEasterEggs || {};
+        window._debugEasterEggs.beeLanding = doBeeLanding;
+        window._debugEasterEggs.honeyDrip = doHoneyDrip;
+        window._debugEasterEggs.queenProcession = doQueenProcession;
+        window._debugEasterEggs.bearPeek = function() {
+            // Force bear peek (bypassing probability)
+            var bear = document.createElement('div');
+            bear.className = 'bee-bear';
+            bear.textContent = '\uD83D\uDC3B';
+            var edges = ['left', 'right', 'bottom'];
+            var edge = edges[Math.floor(Math.random() * edges.length)];
+            bear.classList.add('bee-bear--' + edge);
+            if (edge === 'left' || edge === 'right') {
+                bear.style.top = (10 + Math.random() * 80) + '%';
+            } else {
+                bear.style.left = (10 + Math.random() * 80) + '%';
+            }
+            document.body.appendChild(bear);
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    if (edge === 'left') bear.style.left = '-12px';
+                    else if (edge === 'right') bear.style.right = '-12px';
+                    else bear.style.bottom = '-12px';
+                    bear.classList.add('bee-bear--sniff');
+                });
+            });
+            var hideTimer = setTimeout(function() {
+                bear.classList.remove('bee-bear--sniff');
+                if (edge === 'left') bear.style.left = '-60px';
+                else if (edge === 'right') bear.style.right = '-60px';
+                else bear.style.bottom = '-60px';
+                setTimeout(function() { bear.remove(); }, 1000);
+            }, 2800);
+            beeTimers.push(hideTimer);
         };
-        document.addEventListener('mousemove', beeIdleMoveHandler);
-
-        // Honeycomb hex offsets: pointy-top hex grid, center + ring 1 + ring 2
-        var hexCellSize = 32;
-        var hw = hexCellSize * 1.73;  // horizontal spacing
-        var hh = hexCellSize * 1.5;   // vertical spacing
-        var hexOffsets = [
-            // Ring 0 — center
-            { x: 0, y: 0 },
-            // Ring 1 — 6 neighbors
-            { x: hw, y: 0 },
-            { x: -hw, y: 0 },
-            { x: hw * 0.5, y: -hh },
-            { x: -hw * 0.5, y: -hh },
-            { x: hw * 0.5, y: hh },
-            { x: -hw * 0.5, y: hh },
-            // Ring 2 — 12 outer cells
-            { x: hw * 2, y: 0 },
-            { x: -hw * 2, y: 0 },
-            { x: hw * 1.5, y: -hh },
-            { x: -hw * 1.5, y: -hh },
-            { x: hw * 1.5, y: hh },
-            { x: -hw * 1.5, y: hh },
-            { x: hw, y: -hh * 2 },
-            { x: -hw, y: -hh * 2 },
-            { x: 0, y: -hh * 2 },
-            { x: hw, y: hh * 2 },
-            { x: -hw, y: hh * 2 },
-            { x: 0, y: hh * 2 },
-        ];
-        var hiveCrawlRAF = null;
-
-        var idleCheckId = setInterval(function() {
-            if (hiveActive) return;
-            if (Date.now() - lastMoveTime > 60000) {
-                hiveActive = true;
-                var cx = W / 2;
-                var cy = H / 2;
-
-                // Create container for hex cells
-                hiveCluster = document.createElement('div');
-                hiveCluster.className = 'bee-hive-cluster';
-                hiveCluster.style.left = cx + 'px';
-                hiveCluster.style.top = cy + 'px';
-                document.body.appendChild(hiveCluster);
-
-                // Add hex cells one at a time
-                var cellCount = 10 + Math.floor(Math.random() * 6); // 10-15 cells
-                var shuffled = hexOffsets.slice().sort(function() { return Math.random() - 0.5; });
-                var hiveCells = [];
-
-                for (var c = 0; c < Math.min(cellCount, shuffled.length); c++) {
-                    (function(idx, offset) {
-                        var t = setTimeout(function() {
-                            var cell = document.createElement('span');
-                            cell.className = 'bee-hive-cell';
-                            cell.textContent = '\u2B22'; // ⬢
-                            cell.style.left = offset.x + 'px';
-                            cell.style.top = offset.y + 'px';
-                            hiveCluster.appendChild(cell);
-                            hiveCells.push({ el: cell, x: offset.x, y: offset.y });
-                        }, idx * 800 + Math.random() * 400);
-                        beeTimers.push(t);
-                    })(c, shuffled[c]);
-                }
-
-                // Spawn 4-5 bees that fly in, then crawl around
-                var hiveCount = 4 + Math.floor(Math.random() * 2);
-                for (var i = 0; i < hiveCount; i++) {
-                    var hb = document.createElement('div');
-                    hb.className = 'bee bee--buzzing bee-hive-bee';
-                    hb.textContent = '\uD83D\uDC1D';
-                    hb.style.position = 'fixed';
-                    hb.style.zIndex = '10000';
-                    hb.style.fontSize = rand(18, 24) + 'px';
-                    // Start from random edges
-                    hb.style.left = (Math.random() > 0.5 ? -40 : W + 40) + 'px';
-                    hb.style.top = (rand(50, H - 50)) + 'px';
-                    document.body.appendChild(hb);
-
-                    // Each bee tracks its own crawl target (pick a hex cell)
-                    var startCell = pick(hexOffsets);
-                    var beeObj = {
-                        el: hb,
-                        cx: cx + startCell.x,
-                        cy: cy + startCell.y,
-                        crawlX: cx + startCell.x,
-                        crawlY: cy + startCell.y,
-                        arrived: false,
-                        nextCrawl: 0
-                    };
-                    hiveBees.push(beeObj);
-
-                    // Fly to cluster area over 2-3s
-                    (function(obj, delay) {
-                        var t = setTimeout(function() { obj.arrived = true; }, delay);
-                        beeTimers.push(t);
-                    })(beeObj, 2000 + i * 400);
-                }
-
-                // Animate hive bees: fly in then crawl randomly
-                function animateHiveBees() {
-                    if (!hiveActive) return;
-                    for (var b = 0; b < hiveBees.length; b++) {
-                        var obj = hiveBees[b];
-                        if (!obj.el.parentNode) continue;
-                        var curX = parseFloat(obj.el.style.left) || 0;
-                        var curY = parseFloat(obj.el.style.top) || 0;
-
-                        if (!obj.arrived) {
-                            // Fly toward cluster center
-                            var tx = obj.cx;
-                            var ty = obj.cy;
-                            obj.el.style.left = (curX + (tx - curX) * 0.03) + 'px';
-                            obj.el.style.top = (curY + (ty - curY) * 0.03) + 'px';
-                        } else {
-                            // Crawl between hex cells
-                            var now = Date.now();
-                            if (now > obj.nextCrawl) {
-                                // Pick a random hex cell as next target
-                                var cell = pick(hexOffsets);
-                                obj.crawlX = cx + cell.x + rand(-10, 10);
-                                obj.crawlY = cy + cell.y + rand(-10, 10);
-                                obj.nextCrawl = now + rand(2000, 5000);
-                            }
-                            // Slowly crawl toward target
-                            obj.el.style.left = (curX + (obj.crawlX - curX) * 0.005) + 'px';
-                            obj.el.style.top = (curY + (obj.crawlY - curY) * 0.005) + 'px';
-                            // Flip based on direction
-                            var dx = obj.crawlX - curX;
-                            obj.el.style.transform = dx > 0 ? 'scaleX(-1)' : 'scaleX(1)';
-                        }
-                    }
-                    hiveCrawlRAF = requestAnimationFrame(animateHiveBees);
-                }
-                hiveCrawlRAF = requestAnimationFrame(animateHiveBees);
-            }
-        }, 5000);
-        beeTimers.push(idleCheckId);
+        window._debugEasterEggs.beeSwarm = triggerSwarm;
+        window._debugEasterEggs.rainbowBee = function() {
+            // Spawn a single rainbow bee
+            var bee = document.createElement('div');
+            bee.className = 'bee bee--rainbow';
+            bee.textContent = '\uD83D\uDC1D';
+            bee.style.position = 'absolute';
+            bee.style.zIndex = '10000';
+            bee.style.fontSize = rand(30, 38) + 'px';
+            container.appendChild(bee);
+            var goRight = Math.random() > 0.5;
+            var sx = goRight ? -60 : W + 60;
+            var ex = goRight ? W + 60 : -60;
+            var sy = rand(50, H - 80);
+            var dur = rand(7000, 12000);
+            var st = Date.now();
+            var flip = goRight ? 'scaleX(-1)' : 'scaleX(1)';
+            (function anim() {
+                var p = Math.min((Date.now() - st) / dur, 1);
+                var x = sx + (ex - sx) * p;
+                var y = sy + Math.sin(p * Math.PI * 4) * 60;
+                bee.style.left = x + 'px';
+                bee.style.top = y + 'px';
+                bee.style.transform = flip + ' rotate(' + (Math.sin(p * 20) * 12) + 'deg)';
+                bee.style.opacity = p < 0.05 ? String(p / 0.05) : '0.9';
+                if (p < 1) requestAnimationFrame(anim);
+                else bee.remove();
+            })();
+        };
 
         // --- Konami: Unleash the Swarm ---
         konamiCallback = function() {
@@ -1363,6 +1565,11 @@
         handleGoldKonami(currentColor === 'gold');
     }
 
+    // Expose IIFE-level easter eggs for debug menu
+    window._debugEasterEggs = window._debugEasterEggs || {};
+    window._debugEasterEggs.disco = triggerDisco;
+    window._debugEasterEggs.bsod = triggerBSOD;
+
     // --- Sidebar Collapse Toggle ---
     var sidebarToggle = document.getElementById('sidebar-toggle');
     var layoutEl = document.querySelector('.thebeacon-layout');
@@ -1381,3 +1588,161 @@
         });
     }
 })();
+
+// === DEBUG EASTER EGG PANEL (Ctrl+Shift+E) ===
+// To remove: delete everything from this line to "END DEBUG EASTER EGG PANEL" below.
+(function() {
+    'use strict';
+    var panel = null;
+
+    var SECTIONS = [
+        {
+            label: '\uD83D\uDC1D Bee Theme',
+            note: 'Requires bee theme active',
+            color: '#FFB300',
+            buttons: [
+                { text: 'Bee Landing', key: 'beeLanding', icon: '\uD83D\uDC1D\u2B07' },
+                { text: 'Honey Drip', key: 'honeyDrip', icon: '\uD83C\uDF6F' },
+                { text: 'Queen Procession', key: 'queenProcession', icon: '\uD83D\uDC51' },
+                { text: 'Bear Peek', key: 'bearPeek', icon: '\uD83D\uDC3B' },
+                { text: 'Rainbow Bee', key: 'rainbowBee', icon: '\uD83C\uDF08' },
+                { text: 'Bee Swarm', key: 'beeSwarm', icon: '\uD83D\uDC1D\uD83D\uDC1D' },
+            ]
+        },
+        {
+            label: '\uD83D\uDFE2 Matrix Theme',
+            note: 'Requires matrix theme active',
+            color: '#00ff41',
+            buttons: [
+                { text: 'White Rabbit', key: 'whiteRabbit', icon: '\uD83D\uDC07' },
+                { text: 'Matrix Quote', key: 'matrixQuote', icon: '\uD83D\uDCAC' },
+                { text: 'Card Glitch', key: 'matrixGlitch', icon: '\u26A1' },
+            ]
+        },
+        {
+            label: '\uD83C\uDF1F Cross-Theme',
+            note: 'Works on any theme',
+            color: '#818cf8',
+            buttons: [
+                { text: '"This is fine" Dog', key: 'thisIsFine', icon: '\uD83D\uDC36' },
+                { text: 'Good Celebration', key: 'goodCelebration', icon: '\uD83C\uDF89' },
+                { text: 'Calm Celebration', key: 'calmCelebration', icon: '\uD83C\uDFC6' },
+                { text: '4:04 Overlay', key: 'event404', icon: '\u2753' },
+                { text: '4:20 Leaf Rain', key: 'event420', icon: '\uD83C\uDF3F' },
+                { text: '5:00 Beer', key: 'eventBeer', icon: '\uD83C\uDF7A' },
+            ]
+        },
+        {
+            label: '\uD83D\uDEA6 Threshold States',
+            note: 'Preview count styles',
+            color: '#6ee7b7',
+            buttons: [
+                { text: 'Calm', key: 'stateCalm', icon: '\uD83D\uDFE2' },
+                { text: 'Good', key: 'stateGood', icon: '\u2705' },
+                { text: 'Normal', key: 'stateNormal', icon: '\u26AA' },
+                { text: 'Warning', key: 'stateWarning', icon: '\uD83D\uDFE1' },
+                { text: 'Danger', key: 'stateDanger', icon: '\uD83D\uDD34' },
+                { text: 'Emergency', key: 'stateEmergency', icon: '\uD83D\uDEA8' },
+            ]
+        },
+        {
+            label: '\uD83C\uDFB2 Other',
+            note: 'Always available',
+            color: '#f472b6',
+            buttons: [
+                { text: 'Disco Mode', key: 'disco', icon: '\uD83D\uDD7A' },
+                { text: 'BSOD', key: 'bsod', icon: '\uD83D\uDCBB' },
+            ]
+        }
+    ];
+
+    function buildPanel() {
+        var el = document.createElement('div');
+        el.id = 'easter-egg-debug';
+
+        var s = el.style;
+        s.position = 'fixed'; s.bottom = '20px'; s.right = '20px'; s.zIndex = '999999';
+        s.background = '#1a1a2e'; s.color = '#e0e0e0';
+        s.border = '1px solid #333'; s.borderRadius = '10px';
+        s.padding = '14px 16px'; s.fontFamily = 'monospace'; s.fontSize = '12px';
+        s.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'; s.maxWidth = '310px';
+        s.display = 'none'; s.userSelect = 'none'; s.maxHeight = '85vh'; s.overflowY = 'auto';
+
+        // Title bar
+        var title = document.createElement('div');
+        title.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #333;';
+        var titleText = document.createElement('span');
+        titleText.style.cssText = 'font-weight:bold;font-size:13px;color:#FFD54F;';
+        titleText.textContent = 'Easter Egg Debug';
+        title.appendChild(titleText);
+
+        var hint = document.createElement('span');
+        hint.style.cssText = 'font-size:10px;color:#666;margin-left:6px;';
+        hint.textContent = 'Ctrl+Shift+E';
+        title.appendChild(hint);
+
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '\u2715';
+        closeBtn.title = 'Close';
+        closeBtn.style.cssText = 'background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:0 4px;margin-left:auto;';
+        closeBtn.addEventListener('click', function() { togglePanel(); });
+        title.appendChild(closeBtn);
+        el.appendChild(title);
+
+        // Sections
+        SECTIONS.forEach(function(section) {
+            var heading = document.createElement('div');
+            heading.style.cssText = 'font-size:11px;font-weight:bold;color:' + section.color + ';margin:10px 0 2px;';
+            heading.textContent = section.label;
+            el.appendChild(heading);
+
+            if (section.note) {
+                var note = document.createElement('div');
+                note.style.cssText = 'font-size:9px;color:#666;margin-bottom:4px;';
+                note.textContent = section.note;
+                el.appendChild(note);
+            }
+
+            var grid = document.createElement('div');
+            grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+
+            section.buttons.forEach(function(btn) {
+                var b = document.createElement('button');
+                b.innerHTML = btn.icon + ' ' + btn.text;
+                b.style.cssText = 'background:#2a2a3e;color:#e0e0e0;border:1px solid #444;border-radius:5px;' +
+                    'padding:4px 8px;font-size:11px;font-family:monospace;cursor:pointer;transition:all 0.15s;white-space:nowrap;';
+                b.addEventListener('mouseenter', function() { b.style.background = '#3a3a5e'; b.style.borderColor = section.color; });
+                b.addEventListener('mouseleave', function() { b.style.background = '#2a2a3e'; b.style.borderColor = '#444'; });
+                b.addEventListener('click', function() {
+                    var debug = window._debugEasterEggs || {};
+                    if (debug[btn.key]) {
+                        debug[btn.key]();
+                        b.style.background = '#1a3a1a'; b.style.borderColor = '#4CAF50';
+                        setTimeout(function() { b.style.background = '#2a2a3e'; b.style.borderColor = '#444'; }, 400);
+                    } else {
+                        b.style.background = '#3a1a1a'; b.style.borderColor = '#f44';
+                        setTimeout(function() { b.style.background = '#2a2a3e'; b.style.borderColor = '#444'; }, 600);
+                    }
+                });
+                grid.appendChild(b);
+            });
+            el.appendChild(grid);
+        });
+
+        document.body.appendChild(el);
+        return el;
+    }
+
+    function togglePanel() {
+        if (!panel) panel = buildPanel();
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+            e.preventDefault();
+            togglePanel();
+        }
+    });
+})();
+// === END DEBUG EASTER EGG PANEL ===

@@ -51,11 +51,13 @@ status_mapping:
       - "Waiting on Third Party"
 
 # Alert thresholds for total ticket count display
+# calm/good = positive states (green), warning+ = negative states
 alert_thresholds:
+  calm: 50
+  good: 70
   warning: 90
   danger: 100
-  critical: 110
-  emergency: 120
+  emergency: 110
 
 # Dashboard settings
 dashboard:
