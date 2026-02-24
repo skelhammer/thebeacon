@@ -68,6 +68,15 @@ dashboard:
   port: 5050
   timezone: "America/Los_Angeles"  # Timezone for "closed today/this week" boundaries
 
+# Auto-dim settings for TV/kiosk mode
+# Dims the screen outside business hours to save energy and reduce glare
+auto_dim:
+  enabled: true
+  dim_start_hour: 17       # 5 PM — screen dims
+  wake_hour: 8             # 8 AM — screen wakes
+  dim_weekends: true       # Stay dimmed all day Saturday & Sunday
+  brightness_percent: 15   # How bright when dimmed (0 = black, 100 = full)
+
 # Statuses to exclude from all queries (tickets in these statuses are never shown)
 closed_statuses:
   - "Resolved"

@@ -3709,3 +3709,56 @@ html.sidebar-collapsed .side-panel__label {
     animation: leaf-fall 5s ease-in forwards;
     will-change: transform, top;
 }
+
+/* ========================
+   KIOSK MODE (?kiosk=true)
+   ======================== */
+html.kiosk-mode .thebeacon-side-panel {
+    display: none;
+}
+
+html.kiosk-mode .thebeacon-content {
+    margin-left: 0;
+}
+
+html.kiosk-mode .page-header__title {
+    display: none;
+}
+
+html.kiosk-mode #agent-filter {
+    display: none;
+}
+
+html.kiosk-mode main {
+    max-width: none !important;
+}
+
+html.kiosk-mode .card {
+    max-width: none !important;
+}
+
+/* Floating theme dock — hidden by default, only shown in kiosk mode */
+.kiosk-theme-dock {
+    display: none;
+}
+
+html.kiosk-mode .kiosk-theme-dock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    z-index: 10000;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    padding: 6px 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+html.kiosk-mode .kiosk-theme-dock:hover {
+    opacity: 1;
+}

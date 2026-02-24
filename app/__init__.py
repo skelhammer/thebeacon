@@ -163,6 +163,7 @@ def create_app(config):
         refresh_ms = config.get('dashboard', {}).get('refresh_interval_seconds', 60) * 1000
         ticket_url_template = _build_ticket_url_template()
         thresholds = config.get('alert_thresholds', {})
+        auto_dim = config.get('auto_dim', {})
 
         return render_template(
             'index.html',
@@ -185,6 +186,7 @@ def create_app(config):
             selected_agent_id=agent_id,
             error_message=error,
             alert_thresholds=thresholds,
+            auto_dim=auto_dim,
             closed_today=closed_counts.get('today'),
             closed_this_week=closed_counts.get('this_week'),
         )

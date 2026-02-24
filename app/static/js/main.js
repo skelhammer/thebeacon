@@ -401,14 +401,15 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(refreshTicketData, 100);
     }
 
-    // Periodic auto-refresh (schedules next after current completes to prevent overlap)
+    // Periodic auto-refresh synced to the clock (fires at the top of each minute)
     function scheduleRefresh() {
-        if (AUTO_REFRESH_INTERVAL_MS > 0) {
-            setTimeout(async function() {
-                await refreshTicketData();
-                scheduleRefresh();
-            }, AUTO_REFRESH_INTERVAL_MS);
-        }
+        if (AUTO_REFRESH_INTERVAL_MS <= 0) return;
+        var now = Date.now();
+        var msUntilNextMinute = AUTO_REFRESH_INTERVAL_MS - (now % AUTO_REFRESH_INTERVAL_MS);
+        setTimeout(async function() {
+            await refreshTicketData();
+            scheduleRefresh();
+        }, msUntilNextMinute);
     }
     scheduleRefresh();
 
@@ -807,4 +808,51 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sirenL) sirenL.classList.remove('active');
         if (sirenR) sirenR.classList.remove('active');
     };
+
+    // ========================
+    //  AUTO-DIM (TV/Kiosk Mode)
+    // ========================
+    var dimConfig = window.AUTO_DIM || {};
+    if (dimConfig.enabled) {
+        var dimStartHour = dimConfig.dim_start_hour != null ? dimConfig.dim_start_hour : 17;
+        var wakeHour = dimConfig.wake_hour != null ? dimConfig.wake_hour : 8;
+        var dimWeekends = dimConfig.dim_weekends != null ? dimConfig.dim_weekends : true;
+        var brightnessPct = dimConfig.brightness_percent != null ? dimConfig.brightness_percent : 15;
+
+        // Create the dim overlay
+        var dimOverlay = document.createElement('div');
+        dimOverlay.id = 'auto-dim-overlay';
+        dimOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;' +
+            'background:#000;pointer-events:none;z-index:99999;opacity:0;' +
+            'transition:opacity 2s ease;';
+        document.body.appendChild(dimOverlay);
+
+        function shouldDim() {
+            var now = new Date();
+            var day = now.getDay(); // 0=Sun, 6=Sat
+            var hour = now.getHours();
+
+            // Weekend check (Sat=6, Sun=0)
+            if (dimWeekends && (day === 0 || day === 6)) {
+                return true;
+            }
+
+            // After-hours check
+            return hour >= dimStartHour || hour < wakeHour;
+        }
+
+        function updateDim() {
+            var dimmed = shouldDim();
+            // Opacity = inverse of brightness (15% bright = 85% dark overlay)
+            dimOverlay.style.opacity = dimmed ? String((100 - brightnessPct) / 100) : '0';
+        }
+
+        // Check immediately and then every 30 seconds
+        updateDim();
+        setInterval(updateDim, 30000);
+
+        // Debug hooks
+        window._debugEasterEggs.dimOn = function() { dimOverlay.style.opacity = String((100 - brightnessPct) / 100); };
+        window._debugEasterEggs.dimOff = function() { dimOverlay.style.opacity = '0'; };
+    }
 });

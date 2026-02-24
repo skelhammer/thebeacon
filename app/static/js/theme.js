@@ -31,16 +31,22 @@
         var picker = document.getElementById('color-theme-picker');
         if (!picker) return;
 
+        var kioskPickerEl = document.getElementById('kiosk-color-theme-picker');
+        function unlockAllPickers() {
+            picker.classList.add('theme-picker--unlocked');
+            if (kioskPickerEl) kioskPickerEl.classList.add('theme-picker--unlocked');
+        }
+
         // If already unlocked, reveal immediately
         if (localStorage.getItem(STORAGE_KEYS.easterEggsUnlocked) === 'true') {
-            picker.classList.add('theme-picker--unlocked');
+            unlockAllPickers();
             return;
         }
 
         // Also auto-unlock if an easter egg theme is already active
         var currentColor = localStorage.getItem(STORAGE_KEYS.colorTheme) || '';
         if (['matrix', 'bee', 'japan'].indexOf(currentColor) !== -1) {
-            picker.classList.add('theme-picker--unlocked');
+            unlockAllPickers();
             localStorage.setItem(STORAGE_KEYS.easterEggsUnlocked, 'true');
             return;
         }
@@ -90,7 +96,7 @@
                     var beaconAudio = new Audio('/static/audio/meridias-beacon.mp3');
                     beaconAudio.play().catch(function() {});
 
-                    picker.classList.add('theme-picker--unlocked');
+                    unlockAllPickers();
                     localStorage.setItem(STORAGE_KEYS.easterEggsUnlocked, 'true');
 
                     // Show toast
@@ -2220,6 +2226,54 @@
         handleJapanAnimation(currentColor === 'japan');
     }
 
+    // --- Kiosk Mode: duplicate theme controls ---
+    var kioskToggle = document.getElementById('kiosk-theme-toggle');
+    if (kioskToggle) {
+        kioskToggle.addEventListener('click', function() {
+            var current = document.documentElement.getAttribute('data-theme') || 'light';
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem(STORAGE_KEYS.theme, next);
+        });
+    }
+
+    var kioskPicker = document.getElementById('kiosk-color-theme-picker');
+    if (kioskPicker) {
+        var kioskSwatches = kioskPicker.querySelectorAll('.theme-swatch');
+        var kioskCurrentColor = localStorage.getItem(STORAGE_KEYS.colorTheme) || '';
+        kioskSwatches.forEach(function(s) {
+            if (s.dataset.color === kioskCurrentColor) s.classList.add('active');
+        });
+
+        kioskPicker.addEventListener('click', function(e) {
+            var swatch = e.target.closest('.theme-swatch');
+            if (!swatch) return;
+            var color = swatch.dataset.color;
+
+            // Sync active state on both pickers
+            kioskSwatches.forEach(function(s) { s.classList.remove('active'); });
+            swatch.classList.add('active');
+            if (picker) {
+                picker.querySelectorAll('.theme-swatch').forEach(function(s) {
+                    s.classList.toggle('active', s.dataset.color === color);
+                });
+            }
+
+            if (color) {
+                document.documentElement.setAttribute('data-color-theme', color);
+            } else {
+                document.documentElement.removeAttribute('data-color-theme');
+            }
+            localStorage.setItem(STORAGE_KEYS.colorTheme, color);
+
+            konamiCallback = null;
+            handleMatrixRain(color === 'matrix');
+            handleBeeAnimation(color === 'bee');
+            handleBeeconName(color === 'bee');
+            handleJapanAnimation(color === 'japan');
+        });
+    }
+
     // Expose IIFE-level easter eggs for debug menu
     window._debugEasterEggs = window._debugEasterEggs || {};
     window._debugEasterEggs.bsod = triggerBSOD;
@@ -2306,7 +2360,6 @@
             buttons: [
                 { text: 'White Rabbit', key: 'whiteRabbit', icon: '\uD83D\uDC07' },
                 { text: 'Matrix Quote', key: 'matrixQuote', icon: '\uD83D\uDCAC' },
-                { text: 'Card Glitch', key: 'matrixGlitch', icon: '\u26A1' },
                 { text: 'No Spoon', key: 'matrixSpoon', icon: '\uD83E\uDD44' },
                 { text: 'Invert Gravity', key: 'matrixGravity', icon: '\u2B06\uFE0F' },
             ]
@@ -2365,6 +2418,15 @@
             buttons: [
                 { text: 'Lock Hidden Themes', key: 'lockThemes', icon: '\uD83D\uDD12' },
                 { text: 'Reset to Default', key: 'resetToDefault', icon: '\u21BA' },
+            ]
+        },
+        {
+            label: '\uD83C\uDF19 Auto-Dim',
+            note: 'TV/kiosk mode',
+            color: '#64748b',
+            buttons: [
+                { text: 'Dim On', key: 'dimOn', icon: '\uD83C\uDF11' },
+                { text: 'Dim Off', key: 'dimOff', icon: '\u2600\uFE0F' },
             ]
         }
     ];
