@@ -3729,6 +3729,51 @@ html.kiosk-mode #agent-filter {
     display: none;
 }
 
+/* Kiosk enter button (sidebar) */
+.kiosk-enter-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.75rem;
+    background: none;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.kiosk-enter-btn:hover {
+    background: var(--color-border-light);
+    color: var(--color-text-primary);
+}
+
+html.kiosk-mode .kiosk-enter-btn {
+    display: none;
+}
+
+/* Kiosk exit button (floating dock) */
+.kiosk-exit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--color-border-light);
+    border-radius: 6px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.kiosk-exit-btn:hover {
+    background: var(--color-border-light);
+    color: var(--color-text-primary);
+}
+
 html.kiosk-mode main {
     max-width: none !important;
 }

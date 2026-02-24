@@ -82,11 +82,20 @@
                     <div class="theme-swatch theme-swatch--hidden" data-color="bee" style="background: #FFB300;" title="Bee"></div>
                     <div class="theme-swatch theme-swatch--hidden" data-color="japan" style="background: #E91E8D;" title="Japan"></div>
                 </div>
+
+                <!-- Kiosk mode button -->
+                <button class="kiosk-enter-btn" id="kiosk-enter-btn" title="Enter kiosk mode (TV mode)">
+                    <span class="side-panel__icon"><i data-lucide="monitor"></i></span>
+                    <span class="side-panel__label">Kiosk Mode</span>
+                </button>
             </div>
         </aside>
 
         <!-- Kiosk mode: floating theme picker (hidden until hover) -->
         <div class="kiosk-theme-dock" id="kiosk-theme-dock">
+            <button class="kiosk-exit-btn" id="kiosk-exit-btn" title="Exit kiosk mode">
+                <i data-lucide="log-out" style="width:16px;height:16px;"></i>
+            </button>
             <button class="theme-toggle" id="kiosk-theme-toggle" title="Toggle dark/light mode">
                 <div class="theme-toggle__track">
                     <div class="theme-toggle__thumb">
@@ -116,6 +125,24 @@
     <script src="{{ url_for('static', filename='js/theme.js') }}?v={{ app_version }}"></script>
     <script>
         lucide.createIcons();
+
+        // Kiosk mode enter/exit
+        var kioskEnter = document.getElementById('kiosk-enter-btn');
+        var kioskExit = document.getElementById('kiosk-exit-btn');
+        if (kioskEnter) {
+            kioskEnter.addEventListener('click', function() {
+                var url = new URL(window.location);
+                url.searchParams.set('kiosk', '');
+                window.location.href = url.toString();
+            });
+        }
+        if (kioskExit) {
+            kioskExit.addEventListener('click', function() {
+                var url = new URL(window.location);
+                url.searchParams.delete('kiosk');
+                window.location.href = url.toString();
+            });
+        }
     </script>
     {% block scripts %}{% endblock %}
 </body>
