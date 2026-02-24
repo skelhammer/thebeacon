@@ -33,10 +33,16 @@
                 <span class="siren siren--right" id="siren-right"></span>
             </div>
         </div>
-        <div style="text-align: right; margin-left: auto;">
-            <span class="u-text-small u-text-secondary">Last Refresh:</span>
-            <br>
-            <strong id="dashboard-generated-time" style="font-size: 1.25rem;">Loading...</strong>
+        <div style="text-align: right; margin-left: auto; display: flex; align-items: center; gap: 1rem;">
+            <span id="sla-violation-badge" class="sla-violation-badge" style="display: none;">
+                <span class="sla-violation-badge__icon">&#9888;</span>
+                <span class="sla-violation-count">0</span> SLA Violations
+            </span>
+            <div>
+                <span class="u-text-small u-text-secondary">Last Refresh:</span>
+                <br>
+                <strong id="dashboard-generated-time" style="font-size: 1.25rem;">Loading...</strong>
+            </div>
         </div>
     </div>
     <div class="card__header--secondary">

@@ -2337,145 +2337,163 @@
     'use strict';
     var panel = null;
 
-    var SECTIONS = [
+    // Tab definitions — each tab has a label, icon, and sections
+    var TABS = [
         {
-            label: '\uD83D\uDC1D Bee Theme',
-            note: 'Requires bee theme active',
-            color: '#FFB300',
-            buttons: [
-                { text: 'Bee Landing', key: 'beeLanding', icon: '\uD83D\uDC1D\u2B07' },
-                { text: 'Honey Drip', key: 'honeyDrip', icon: '\uD83C\uDF6F' },
-                { text: 'Queen Procession', key: 'queenProcession', icon: '\uD83D\uDC51' },
-                { text: 'Bear Peek', key: 'bearPeek', icon: '\uD83D\uDC3B' },
-                { text: 'Rainbow Bee', key: 'rainbowBee', icon: '\uD83C\uDF08' },
-                { text: 'Bee Swarm', key: 'beeSwarm', icon: '\uD83D\uDC1D\uD83D\uDC1D' },
-                { text: 'Butterfly', key: 'spawnButterfly', icon: '\uD83E\uDD8B' },
-                { text: 'Ladybug', key: 'spawnLadybug', icon: '\uD83D\uDC1E' },
+            id: 'themes',
+            label: 'Themes',
+            icon: '\uD83C\uDFA8',
+            sections: [
+                {
+                    label: '\uD83D\uDC1D Bee Theme',
+                    note: 'Requires bee theme active',
+                    color: '#FFB300',
+                    buttons: [
+                        { text: 'Bee Landing', key: 'beeLanding', icon: '\uD83D\uDC1D\u2B07' },
+                        { text: 'Honey Drip', key: 'honeyDrip', icon: '\uD83C\uDF6F' },
+                        { text: 'Queen Procession', key: 'queenProcession', icon: '\uD83D\uDC51' },
+                        { text: 'Bear Peek', key: 'bearPeek', icon: '\uD83D\uDC3B' },
+                        { text: 'Rainbow Bee', key: 'rainbowBee', icon: '\uD83C\uDF08' },
+                        { text: 'Bee Swarm', key: 'beeSwarm', icon: '\uD83D\uDC1D\uD83D\uDC1D' },
+                        { text: 'Butterfly', key: 'spawnButterfly', icon: '\uD83E\uDD8B' },
+                        { text: 'Ladybug', key: 'spawnLadybug', icon: '\uD83D\uDC1E' },
+                    ]
+                },
+                {
+                    label: '\uD83D\uDFE2 Matrix Theme',
+                    note: 'Requires matrix theme active',
+                    color: '#00ff41',
+                    buttons: [
+                        { text: 'White Rabbit', key: 'whiteRabbit', icon: '\uD83D\uDC07' },
+                        { text: 'Matrix Quote', key: 'matrixQuote', icon: '\uD83D\uDCAC' },
+                        { text: 'No Spoon', key: 'matrixSpoon', icon: '\uD83E\uDD44' },
+                        { text: 'Invert Gravity', key: 'matrixGravity', icon: '\u2B06\uFE0F' },
+                    ]
+                },
+                {
+                    label: '\uD83C\uDF38 Japan Theme',
+                    note: 'Requires japan theme active',
+                    color: '#E91E8D',
+                    buttons: [
+                        { text: 'Sakura Burst', key: 'sakuraBurst', icon: '\uD83C\uDF38' },
+                        { text: 'Lucky Cat', key: 'luckyCat', icon: '\uD83D\uDC31' },
+                        { text: 'Zen Mode', key: 'zenMode', icon: '\u26E9\uFE0F' },
+                    ]
+                }
             ]
         },
         {
-            label: '\uD83D\uDFE2 Matrix Theme',
-            note: 'Requires matrix theme active',
-            color: '#00ff41',
-            buttons: [
-                { text: 'White Rabbit', key: 'whiteRabbit', icon: '\uD83D\uDC07' },
-                { text: 'Matrix Quote', key: 'matrixQuote', icon: '\uD83D\uDCAC' },
-                { text: 'No Spoon', key: 'matrixSpoon', icon: '\uD83E\uDD44' },
-                { text: 'Invert Gravity', key: 'matrixGravity', icon: '\u2B06\uFE0F' },
+            id: 'events',
+            label: 'Events',
+            icon: '\uD83C\uDF1F',
+            sections: [
+                {
+                    label: '\uD83C\uDF1F Cross-Theme',
+                    note: 'Works on any theme',
+                    color: '#818cf8',
+                    buttons: [
+                        { text: '"This is fine" Dog', key: 'thisIsFine', icon: '\uD83D\uDC36' },
+                        { text: 'Good Celebration', key: 'goodCelebration', icon: '\uD83C\uDF89' },
+                        { text: 'Calm Celebration', key: 'calmCelebration', icon: '\uD83C\uDFC6' },
+                        { text: '4:04 Overlay', key: 'event404', icon: '\u2753' },
+                        { text: '4:20 Leaf Rain', key: 'event420', icon: '\uD83C\uDF3F' },
+                        { text: '5:00 Beer', key: 'eventBeer', icon: '\uD83C\uDF7A' },
+                    ]
+                },
+                {
+                    label: '\uD83D\uDEA6 Threshold States',
+                    note: 'Preview count styles',
+                    color: '#6ee7b7',
+                    buttons: [
+                        { text: 'Calm', key: 'stateCalm', icon: '\uD83D\uDFE2' },
+                        { text: 'Good', key: 'stateGood', icon: '\u2705' },
+                        { text: 'Normal', key: 'stateNormal', icon: '\u26AA' },
+                        { text: 'Warning', key: 'stateWarning', icon: '\uD83D\uDFE1' },
+                        { text: 'Danger', key: 'stateDanger', icon: '\uD83D\uDD34' },
+                        { text: 'Emergency', key: 'stateEmergency', icon: '\uD83D\uDEA8' },
+                    ]
+                },
+                {
+                    label: '\uD83C\uDFB2 Other',
+                    note: 'Always available',
+                    color: '#f472b6',
+                    buttons: [
+                        { text: 'BSOD', key: 'bsod', icon: '\uD83D\uDCBB' },
+                        { text: 'Retro CRT', key: 'retroCRT', icon: '\uD83D\uDCFA' },
+                        { text: 'Nyan Cat', key: 'nyanCat', icon: '\uD83D\uDC31' },
+                        { text: 'Alert Cascade', key: 'alertCascade', icon: '\u26A0\uFE0F' },
+                    ]
+                }
             ]
         },
         {
-            label: '\uD83C\uDF38 Japan Theme',
-            note: 'Requires japan theme active',
-            color: '#E91E8D',
-            buttons: [
-                { text: 'Sakura Burst', key: 'sakuraBurst', icon: '\uD83C\uDF38' },
-                { text: 'Lucky Cat', key: 'luckyCat', icon: '\uD83D\uDC31' },
-                { text: 'Zen Mode', key: 'zenMode', icon: '\u26E9\uFE0F' },
+            id: 'notifications',
+            label: 'Alerts',
+            icon: '\uD83D\uDD14',
+            sections: [
+                {
+                    label: '\uD83D\uDCE8 Toasts',
+                    note: 'Test notification popups',
+                    color: '#f97316',
+                    buttons: [
+                        { text: 'New Ticket', key: 'testToastNew', icon: '\uD83D\uDCE8' },
+                        { text: 'Closed', key: 'testToastClosed', icon: '\u2705' },
+                        { text: 'SLA Violation', key: 'testToastSLA', icon: '\uD83D\uDEA8' },
+                        { text: 'Info', key: 'testToastInfo', icon: '\u2139\uFE0F' },
+                    ]
+                },
+                {
+                    label: '\uD83D\uDD0A Sounds',
+                    note: 'Click page first to enable audio',
+                    color: '#38bdf8',
+                    buttons: [
+                        { text: 'New Ticket', key: 'soundNewTicket', icon: '\uD83D\uDD14' },
+                        { text: 'SLA Escalation', key: 'soundSLA', icon: '\uD83D\uDEA8' },
+                    ]
+                }
             ]
         },
         {
-            label: '\uD83C\uDF1F Cross-Theme',
-            note: 'Works on any theme',
-            color: '#818cf8',
-            buttons: [
-                { text: '"This is fine" Dog', key: 'thisIsFine', icon: '\uD83D\uDC36' },
-                { text: 'Good Celebration', key: 'goodCelebration', icon: '\uD83C\uDF89' },
-                { text: 'Calm Celebration', key: 'calmCelebration', icon: '\uD83C\uDFC6' },
-                { text: '4:04 Overlay', key: 'event404', icon: '\u2753' },
-                { text: '4:20 Leaf Rain', key: 'event420', icon: '\uD83C\uDF3F' },
-                { text: '5:00 Beer', key: 'eventBeer', icon: '\uD83C\uDF7A' },
-            ]
-        },
-        {
-            label: '\uD83D\uDEA6 Threshold States',
-            note: 'Preview count styles',
-            color: '#6ee7b7',
-            buttons: [
-                { text: 'Calm', key: 'stateCalm', icon: '\uD83D\uDFE2' },
-                { text: 'Good', key: 'stateGood', icon: '\u2705' },
-                { text: 'Normal', key: 'stateNormal', icon: '\u26AA' },
-                { text: 'Warning', key: 'stateWarning', icon: '\uD83D\uDFE1' },
-                { text: 'Danger', key: 'stateDanger', icon: '\uD83D\uDD34' },
-                { text: 'Emergency', key: 'stateEmergency', icon: '\uD83D\uDEA8' },
-            ]
-        },
-        {
-            label: '\uD83C\uDFB2 Other',
-            note: 'Always available',
-            color: '#f472b6',
-            buttons: [
-                { text: 'BSOD', key: 'bsod', icon: '\uD83D\uDCBB' },
-                { text: 'Retro CRT', key: 'retroCRT', icon: '\uD83D\uDCFA' },
-                { text: 'Nyan Cat', key: 'nyanCat', icon: '\uD83D\uDC31' },
-                { text: 'Alert Cascade', key: 'alertCascade', icon: '\u26A0\uFE0F' },
-            ]
-        },
-        {
-            label: '\uD83D\uDD27 Settings',
-            note: 'Theme management',
-            color: '#888',
-            buttons: [
-                { text: 'Lock Hidden Themes', key: 'lockThemes', icon: '\uD83D\uDD12' },
-                { text: 'Reset to Default', key: 'resetToDefault', icon: '\u21BA' },
-            ]
-        },
-        {
-            label: '\uD83C\uDF19 Auto-Dim',
-            note: 'TV/kiosk mode',
-            color: '#64748b',
-            buttons: [
-                { text: 'Dim On', key: 'dimOn', icon: '\uD83C\uDF11' },
-                { text: 'Dim Off', key: 'dimOff', icon: '\u2600\uFE0F' },
+            id: 'settings',
+            label: 'Settings',
+            icon: '\uD83D\uDD27',
+            sections: [
+                {
+                    label: '\uD83D\uDD27 Settings',
+                    note: 'Theme management',
+                    color: '#888',
+                    buttons: [
+                        { text: 'Lock Hidden Themes', key: 'lockThemes', icon: '\uD83D\uDD12' },
+                        { text: 'Reset to Default', key: 'resetToDefault', icon: '\u21BA' },
+                    ]
+                },
+                {
+                    label: '\uD83C\uDF19 Auto-Dim',
+                    note: 'TV/kiosk mode',
+                    color: '#64748b',
+                    buttons: [
+                        { text: 'Dim On', key: 'dimOn', icon: '\uD83C\uDF11' },
+                        { text: 'Dim Off', key: 'dimOff', icon: '\u2600\uFE0F' },
+                    ]
+                }
             ]
         }
     ];
 
-    function buildPanel() {
-        var el = document.createElement('div');
-        el.id = 'easter-egg-debug';
+    var activeTabId = TABS[0].id;
 
-        var s = el.style;
-        s.position = 'fixed'; s.bottom = '20px'; s.right = '20px'; s.zIndex = '999999';
-        s.background = '#1a1a2e'; s.color = '#e0e0e0';
-        s.border = '1px solid #333'; s.borderRadius = '10px';
-        s.padding = '14px 16px'; s.fontFamily = 'monospace'; s.fontSize = '12px';
-        s.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'; s.maxWidth = '310px';
-        s.display = 'none'; s.userSelect = 'none'; s.maxHeight = '85vh'; s.overflowY = 'auto';
-
-        // Title bar
-        var title = document.createElement('div');
-        title.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #333;';
-        var titleText = document.createElement('span');
-        titleText.style.cssText = 'font-weight:bold;font-size:13px;color:#FFD54F;';
-        titleText.textContent = 'Easter Egg Debug';
-        title.appendChild(titleText);
-
-        var hint = document.createElement('span');
-        hint.style.cssText = 'font-size:10px;color:#666;margin-left:6px;';
-        hint.textContent = 'Ctrl+Shift+E';
-        title.appendChild(hint);
-
-        var closeBtn = document.createElement('button');
-        closeBtn.textContent = '\u2715';
-        closeBtn.title = 'Close';
-        closeBtn.style.cssText = 'background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:0 4px;margin-left:auto;';
-        closeBtn.addEventListener('click', function() { togglePanel(); });
-        title.appendChild(closeBtn);
-        el.appendChild(title);
-
-        // Sections
-        SECTIONS.forEach(function(section) {
+    function buildSections(container, sections) {
+        sections.forEach(function(section) {
             var heading = document.createElement('div');
             heading.style.cssText = 'font-size:11px;font-weight:bold;color:' + section.color + ';margin:10px 0 2px;';
             heading.textContent = section.label;
-            el.appendChild(heading);
+            container.appendChild(heading);
 
             if (section.note) {
                 var note = document.createElement('div');
                 note.style.cssText = 'font-size:9px;color:#666;margin-bottom:4px;';
                 note.textContent = section.note;
-                el.appendChild(note);
+                container.appendChild(note);
             }
 
             var grid = document.createElement('div');
@@ -2501,8 +2519,121 @@
                 });
                 grid.appendChild(b);
             });
-            el.appendChild(grid);
+            container.appendChild(grid);
         });
+    }
+
+    function buildPanel() {
+        var el = document.createElement('div');
+        el.id = 'easter-egg-debug';
+
+        var s = el.style;
+        s.position = 'fixed'; s.bottom = '20px'; s.right = '20px'; s.zIndex = '999999';
+        s.background = '#1a1a2e'; s.color = '#e0e0e0';
+        s.border = '1px solid #333'; s.borderRadius = '10px';
+        s.padding = '0'; s.fontFamily = 'monospace'; s.fontSize = '12px';
+        s.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'; s.width = '320px';
+        s.display = 'none'; s.userSelect = 'none';
+
+        // --- Draggable title bar ---
+        var titleBar = document.createElement('div');
+        titleBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px 8px;border-bottom:1px solid #333;cursor:grab;';
+
+        var titleLeft = document.createElement('div');
+        titleLeft.style.cssText = 'display:flex;align-items:center;gap:6px;';
+        var titleText = document.createElement('span');
+        titleText.style.cssText = 'font-weight:bold;font-size:13px;color:#FFD54F;';
+        titleText.textContent = 'Debug Panel';
+        titleLeft.appendChild(titleText);
+        var hint = document.createElement('span');
+        hint.style.cssText = 'font-size:10px;color:#666;';
+        hint.textContent = 'Ctrl+Shift+E';
+        titleLeft.appendChild(hint);
+        titleBar.appendChild(titleLeft);
+
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '\u2715';
+        closeBtn.title = 'Close';
+        closeBtn.style.cssText = 'background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:0 4px;';
+        closeBtn.addEventListener('click', function() { togglePanel(); });
+        titleBar.appendChild(closeBtn);
+        el.appendChild(titleBar);
+
+        // Drag logic
+        var isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
+        titleBar.addEventListener('mousedown', function(e) {
+            if (e.target === closeBtn) return;
+            isDragging = true;
+            titleBar.style.cursor = 'grabbing';
+            var rect = el.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            var x = e.clientX - dragOffsetX;
+            var y = e.clientY - dragOffsetY;
+            // Clamp to viewport
+            x = Math.max(0, Math.min(x, window.innerWidth - el.offsetWidth));
+            y = Math.max(0, Math.min(y, window.innerHeight - el.offsetHeight));
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.style.right = 'auto';
+            el.style.bottom = 'auto';
+        });
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                titleBar.style.cursor = 'grab';
+            }
+        });
+
+        // --- Tab bar ---
+        var tabBar = document.createElement('div');
+        tabBar.style.cssText = 'display:flex;border-bottom:1px solid #333;padding:0 4px;';
+
+        // Tab content container
+        var contentArea = document.createElement('div');
+        contentArea.style.cssText = 'padding:8px 14px 14px;max-height:60vh;overflow-y:auto;';
+
+        var tabPanels = {};
+        var tabButtons = {};
+
+        TABS.forEach(function(tab) {
+            // Tab button
+            var btn = document.createElement('button');
+            btn.innerHTML = tab.icon + ' ' + tab.label;
+            btn.style.cssText = 'flex:1;background:none;border:none;border-bottom:2px solid transparent;color:#888;' +
+                'font-size:11px;font-family:monospace;padding:8px 4px;cursor:pointer;transition:all 0.15s;white-space:nowrap;';
+            tabButtons[tab.id] = btn;
+
+            btn.addEventListener('click', function() { switchTab(tab.id); });
+            tabBar.appendChild(btn);
+
+            // Tab panel
+            var panelDiv = document.createElement('div');
+            panelDiv.style.display = 'none';
+            buildSections(panelDiv, tab.sections);
+            tabPanels[tab.id] = panelDiv;
+            contentArea.appendChild(panelDiv);
+        });
+
+        el.appendChild(tabBar);
+        el.appendChild(contentArea);
+
+        function switchTab(tabId) {
+            activeTabId = tabId;
+            TABS.forEach(function(t) {
+                var isActive = t.id === tabId;
+                tabPanels[t.id].style.display = isActive ? 'block' : 'none';
+                tabButtons[t.id].style.color = isActive ? '#FFD54F' : '#888';
+                tabButtons[t.id].style.borderBottomColor = isActive ? '#FFD54F' : 'transparent';
+            });
+        }
+
+        // Show first tab
+        switchTab(activeTabId);
 
         document.body.appendChild(el);
         return el;

@@ -1,27 +1,93 @@
 document.addEventListener('DOMContentLoaded', () => {
     const agentFilter = document.getElementById('agent-filter');
 
-    // --- New Ticket Notification Sound ---
+    // --- Notification Sounds (Web Audio API) ---
     let audioCtx = null;
     document.addEventListener('click', function() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }, { once: true });
 
-    function playNewTicketPing() {
+    var newTicketAudio = new Audio('/static/audio/new-ticket.mp3');
+    newTicketAudio.preload = 'auto';
+
+    function playNewTicketSound() {
+        newTicketAudio.currentTime = 0;
+        newTicketAudio.play().catch(function() {});
+    }
+
+    function playSLAEscalationSound() {
         if (!audioCtx) return;
-        [600, 900].forEach(function(freq, i) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.45, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        // Urgent double-pulse at 440Hz, square wave
+        [0, 0.2].forEach(function(delay) {
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.value = 440;
+            gain.gain.setValueAtTime(0.9, audioCtx.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.15);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.start(audioCtx.currentTime + i * 0.12);
-            osc.stop(audioCtx.currentTime + i * 0.12 + 0.5);
+            osc.start(audioCtx.currentTime + delay);
+            osc.stop(audioCtx.currentTime + delay + 0.15);
         });
     }
+
+    // --- Toast Manager ---
+    var ToastManager = (function() {
+        var container = null;
+        var MAX_TOASTS = 5;
+
+        function getContainer() {
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            return container;
+        }
+
+        function show(html, variant, duration) {
+            variant = variant || 'info';
+            duration = duration || 6000;
+            var c = getContainer();
+
+            // Enforce max toasts — remove oldest
+            while (c.children.length >= MAX_TOASTS) {
+                c.removeChild(c.firstChild);
+            }
+
+            var toast = document.createElement('div');
+            toast.className = 'toast toast--' + variant;
+            toast.innerHTML = html;
+
+            // Click to dismiss
+            toast.addEventListener('click', function() { dismiss(toast); });
+
+            c.appendChild(toast);
+
+            // Auto-dismiss
+            var timer = setTimeout(function() { dismiss(toast); }, duration);
+            toast._dismissTimer = timer;
+
+            return toast;
+        }
+
+        function dismiss(toast) {
+            if (toast._dismissed) return;
+            toast._dismissed = true;
+            clearTimeout(toast._dismissTimer);
+            toast.classList.add('toast--hiding');
+            setTimeout(function() {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 300);
+        }
+
+        return { show: show };
+    })();
+
+    // --- SLA Severity Tracking ---
+    var SLA_SEVERITY = { 'sla-none': 0, 'sla-responded': 0, 'sla-normal': 1, 'sla-warning': 2, 'sla-critical': 3, 'sla-overdue': 4 };
+    var previousSlaSeverity = {}; // ticket id → severity number
 
     // --- Agent Filter Logic ---
     if (agentFilter) {
@@ -134,8 +200,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const prioritySlug = (item.priority_text || 'n-a').toLowerCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
 
+        // Row highlighting for SLA violations
+        let rowClass = '';
+        if (slaClass === 'sla-overdue') rowClass = ' class="row-sla-violated"';
+        else if (slaClass === 'sla-critical') rowClass = ' class="row-sla-critical"';
+
         return `
-        <tr>
+        <tr${rowClass}>
             <td><a href="${TICKET_URL_TEMPLATE.replace('{ticket_id}', ticketId)}" target="_blank">${itemId}</a></td>
             <td>${subjectText}</td>
             <td>${requesterName}</td>
@@ -252,6 +323,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.dashboard_generated_time_iso) {
             convertAllUTCToLocal(data.dashboard_generated_time_iso);
         }
+
+        // Update SLA violation counter badge
+        var allItems = [].concat(data.s1_items || [], data.s2_items || [], data.s3_items || [], data.s4_items || []);
+        var slaViolationCount = 0;
+        allItems.forEach(function(item) {
+            if (item.first_response_violated || item.resolution_violated) {
+                slaViolationCount++;
+            }
+        });
+        var slaBadge = document.getElementById('sla-violation-badge');
+        if (slaBadge) {
+            if (slaViolationCount > 0) {
+                slaBadge.style.display = 'inline-flex';
+                var countEl = slaBadge.querySelector('.sla-violation-count');
+                if (countEl) countEl.textContent = slaViolationCount;
+            } else {
+                slaBadge.style.display = 'none';
+            }
+        }
     }
 
     async function refreshTicketData() {
@@ -309,13 +399,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Detect new open tickets and play notification
+            // --- Detect new open tickets ---
             const oldS1 = window.currentApiData.s1_items || [];
             const newS1 = data.s1_items || [];
             if (oldS1.length > 0) {
                 const oldIds = new Set(oldS1.map(function(i) { return i.id; }));
-                const hasNew = newS1.some(function(i) { return !oldIds.has(i.id); });
-                if (hasNew) playNewTicketPing();
+                const newTickets = newS1.filter(function(i) { return !oldIds.has(i.id); });
+                if (newTickets.length > 0) {
+                    playNewTicketSound();
+                    if (newTickets.length <= 3) {
+                        newTickets.forEach(function(t) {
+                            var subj = (t.subject || 'No Subject').substring(0, 50) + ((t.subject || '').length > 50 ? '...' : '');
+                            ToastManager.show('<strong>New Ticket: ' + escapeHtml(t.requester_name || 'Unknown') + '</strong><br>' + escapeHtml(subj), 'warning', 8000);
+                        });
+                    } else {
+                        ToastManager.show('<strong>' + newTickets.length + ' New Tickets</strong><br>Check Section 1', 'warning', 8000);
+                    }
+                }
+            }
+
+            // --- Detect closed/resolved tickets ---
+            var oldAll = [].concat(window.currentApiData.s1_items || [], window.currentApiData.s2_items || [], window.currentApiData.s3_items || [], window.currentApiData.s4_items || []);
+            var newAll = [].concat(data.s1_items || [], data.s2_items || [], data.s3_items || [], data.s4_items || []);
+            var agentFilterActive = (agentFilter && agentFilter.value) || new URLSearchParams(window.location.search).get('agent_id');
+            if (oldAll.length > 0 && !agentFilterActive) {
+                var newIdSet = new Set(newAll.map(function(i) { return i.id; }));
+                var closedTickets = oldAll.filter(function(i) { return !newIdSet.has(i.id); });
+                if (closedTickets.length > 0) {
+                    if (closedTickets.length <= 3) {
+                        closedTickets.forEach(function(t) {
+                            var subj = (t.subject || 'No Subject').substring(0, 50) + ((t.subject || '').length > 50 ? '...' : '');
+                            ToastManager.show('<strong>Closed: ' + escapeHtml(t.requester_name || 'Unknown') + '</strong><br>' + escapeHtml(subj), 'success', 6000);
+                        });
+                    } else {
+                        ToastManager.show('<strong>' + closedTickets.length + ' Tickets Closed</strong>', 'success', 6000);
+                    }
+                }
+            }
+
+            // --- Detect SLA escalations ---
+            var slaEscalated = [];
+            newAll.forEach(function(item) {
+                var slaClass = (item.sla_class || 'sla-none').replace(/[^a-zA-Z0-9_-]/g, '');
+                var newSev = SLA_SEVERITY[slaClass] != null ? SLA_SEVERITY[slaClass] : 0;
+                var oldSev = previousSlaSeverity[item.id];
+                if (typeof oldSev === 'number' && newSev >= 3 && newSev > oldSev) {
+                    slaEscalated.push({ item: item, severity: newSev });
+                }
+                previousSlaSeverity[item.id] = newSev;
+            });
+            if (slaEscalated.length > 0) {
+                playSLAEscalationSound();
+                slaEscalated.forEach(function(e) {
+                    var label = e.severity >= 4 ? 'SLA VIOLATED' : 'SLA Critical';
+                    ToastManager.show('<strong>' + label + ': ' + escapeHtml(e.item.requester_name || 'Unknown') + '</strong>', 'error', 10000);
+                });
             }
 
             applyTicketData(data);
@@ -396,6 +534,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial render from server-injected data (instant, no AJAX wait)
     if (window.INITIAL_API_DATA) {
         applyTicketData(window.INITIAL_API_DATA);
+        // Seed SLA severity map from initial data to avoid false escalation toasts
+        var initAll = [].concat(window.INITIAL_API_DATA.s1_items || [], window.INITIAL_API_DATA.s2_items || [], window.INITIAL_API_DATA.s3_items || [], window.INITIAL_API_DATA.s4_items || []);
+        initAll.forEach(function(item) {
+            var cls = (item.sla_class || 'sla-none').replace(/[^a-zA-Z0-9_-]/g, '');
+            previousSlaSeverity[item.id] = SLA_SEVERITY[cls] != null ? SLA_SEVERITY[cls] : 0;
+        });
     } else {
         // Fallback if server didn't inject data
         setTimeout(refreshTicketData, 100);
@@ -864,4 +1008,26 @@ document.addEventListener('DOMContentLoaded', () => {
         window._debugEasterEggs.dimOn = function() { dimOverlay.style.opacity = String((100 - brightnessPct) / 100); };
         window._debugEasterEggs.dimOff = function() { dimOverlay.style.opacity = '0'; };
     }
+
+    // --- Debug hooks for toasts ---
+    window._debugEasterEggs.testToastNew = function() {
+        ToastManager.show('<strong>New Ticket: John Doe</strong><br>My computer won\'t turn on after I spilled...', 'warning', 8000);
+    };
+    window._debugEasterEggs.testToastClosed = function() {
+        ToastManager.show('<strong>Closed: Jane Smith</strong><br>Password reset request', 'success', 6000);
+    };
+    window._debugEasterEggs.testToastSLA = function() {
+        ToastManager.show('<strong>SLA VIOLATED: Bob Jones</strong>', 'error', 10000);
+    };
+    window._debugEasterEggs.testToastInfo = function() {
+        ToastManager.show('<strong>Info:</strong> This is an info toast', 'info', 6000);
+    };
+
+    // --- Debug hooks for sounds ---
+    window._debugEasterEggs.soundNewTicket = function() { playNewTicketSound(); };
+    window._debugEasterEggs.soundSLA = function() { playSLAEscalationSound(); };
+    window._debugEasterEggs.soundAll = function() {
+        playNewTicketSound();
+        setTimeout(playSLAEscalationSound, 1500);
+    };
 });

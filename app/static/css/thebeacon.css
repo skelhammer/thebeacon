@@ -1520,7 +1520,7 @@ table td a:hover {
     top: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1000;
+    z-index: 100000;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -2046,6 +2046,51 @@ table td a:hover {
 .sla-in-progress {
     color: var(--color-text-secondary);
     font-style: italic;
+}
+
+/* SLA Violation Badge (header) */
+.sla-violation-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--color-danger, #ef4444);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    animation: sla-badge-pulse 1.5s ease-in-out infinite;
+    white-space: nowrap;
+}
+
+.sla-violation-badge__icon {
+    font-size: 1rem;
+}
+
+@keyframes sla-badge-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+/* Row highlighting for SLA violations */
+.row-sla-violated {
+    background: rgba(239, 68, 68, 0.12) !important;
+    border-left: 4px solid #ef4444 !important;
+}
+
+.row-sla-critical {
+    background: rgba(245, 158, 11, 0.10) !important;
+    border-left: 4px solid #f59e0b !important;
+}
+
+[data-theme="dark"] .row-sla-violated,
+.dark .row-sla-violated {
+    background: rgba(239, 68, 68, 0.18) !important;
+}
+
+[data-theme="dark"] .row-sla-critical,
+.dark .row-sla-critical {
+    background: rgba(245, 158, 11, 0.15) !important;
 }
 
 /* Animations */
@@ -2744,6 +2789,17 @@ html.sidebar-collapsed .side-panel__label {
     opacity: 0;
     width: 0;
     overflow: hidden;
+}
+
+/* Center kiosk button icon when sidebar collapsed */
+.sidebar-collapsed .kiosk-enter-btn {
+    justify-content: center;
+    padding: 0.5rem 0;
+    border-color: transparent;
+}
+
+.sidebar-collapsed .kiosk-enter-btn .side-panel__label {
+    display: none;
 }
 
 /* Footer alignment */
