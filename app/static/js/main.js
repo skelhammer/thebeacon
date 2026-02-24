@@ -226,6 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const noItemsMessageElement = document.getElementById(`${sectionIdPrefix}-no-items-message`);
         const sectionItemCountElement = document.getElementById(`${sectionIdPrefix}-item-count`);
         const tableWrapper = tableBody ? tableBody.closest('.table-wrapper') : null;
+        const container = document.getElementById(`${sectionIdPrefix}-container`);
+        const cardBody = container ? container.querySelector('.card__body') : null;
 
         if (!tableBody || !noItemsMessageElement || !sectionItemCountElement) return;
 
@@ -236,10 +238,25 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.innerHTML = html;
             noItemsMessageElement.style.display = 'none';
             if (tableWrapper) tableWrapper.style.display = '';
+            // Expand section
+            if (cardBody && cardBody.classList.contains('card__body--collapsed')) {
+                cardBody.classList.remove('card__body--collapsed');
+                cardBody.style.height = cardBody.scrollHeight + 'px';
+                setTimeout(function() { cardBody.style.height = ''; }, 300);
+            }
         } else {
             tableBody.innerHTML = '';
-            noItemsMessageElement.style.display = 'block';
+            noItemsMessageElement.style.display = 'none';
             if (tableWrapper) tableWrapper.style.display = 'none';
+            // Collapse section
+            if (cardBody && !cardBody.classList.contains('card__body--collapsed')) {
+                cardBody.style.height = cardBody.scrollHeight + 'px';
+                // Force reflow then collapse
+                cardBody.offsetHeight;
+                cardBody.classList.add('card__body--collapsed');
+                cardBody.style.height = '0';
+                setTimeout(function() { cardBody.style.height = ''; }, 300);
+            }
         }
     }
 

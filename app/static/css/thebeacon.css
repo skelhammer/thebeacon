@@ -873,6 +873,15 @@ a:hover {
 
 .card__body {
     padding: 2rem;
+    overflow: hidden;
+    transition: height 0.3s ease, padding 0.3s ease;
+}
+
+.card__body--collapsed {
+    height: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
 }
 
 /* Closed Counts Secondary Header Row */
