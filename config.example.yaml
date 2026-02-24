@@ -72,8 +72,8 @@ dashboard:
 # Dims the screen outside business hours to save energy and reduce glare
 auto_dim:
   enabled: true
-  dim_start_hour: 17       # 5 PM — screen dims
-  wake_hour: 8             # 8 AM — screen wakes
+  dim_start: "17:00"       # 5:00 PM — screen dims (HH:MM or just hour)
+  wake: "8:00"             # 8:00 AM — screen wakes (HH:MM or just hour)
   dim_weekends: true       # Stay dimmed all day Saturday & Sunday
   brightness_percent: 15   # How bright when dimmed (0 = black, 100 = full)
 

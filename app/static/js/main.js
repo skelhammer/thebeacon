@@ -814,8 +814,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // ========================
     var dimConfig = window.AUTO_DIM || {};
     if (dimConfig.enabled) {
-        var dimStartHour = dimConfig.dim_start_hour != null ? dimConfig.dim_start_hour : 17;
-        var wakeHour = dimConfig.wake_hour != null ? dimConfig.wake_hour : 8;
+        // Parse "HH:MM" or plain hour number into minutes-since-midnight
+        function parseTimeToMinutes(val, fallback) {
+            if (val == null) return fallback;
+            if (typeof val === 'string' && val.indexOf(':') !== -1) {
+                var parts = val.split(':');
+                return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+            }
+            return parseInt(val, 10) * 60;
+        }
+        var dimStartMin = parseTimeToMinutes(dimConfig.dim_start, 17 * 60);
+        var wakeMin = parseTimeToMinutes(dimConfig.wake, 8 * 60);
         var dimWeekends = dimConfig.dim_weekends != null ? dimConfig.dim_weekends : true;
         var brightnessPct = dimConfig.brightness_percent != null ? dimConfig.brightness_percent : 15;
 
@@ -830,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function shouldDim() {
             var now = new Date();
             var day = now.getDay(); // 0=Sun, 6=Sat
-            var hour = now.getHours();
+            var currentMin = now.getHours() * 60 + now.getMinutes();
 
             // Weekend check (Sat=6, Sun=0)
             if (dimWeekends && (day === 0 || day === 6)) {
@@ -838,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // After-hours check
-            return hour >= dimStartHour || hour < wakeHour;
+            return currentMin >= dimStartMin || currentMin < wakeMin;
         }
 
         function updateDim() {
