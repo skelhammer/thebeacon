@@ -66,6 +66,7 @@ dashboard:
   app_name: "The Beacon"
   company_name: ""            # e.g. "Acme" → "The Acme Beacon"
   port: 5050
+  timezone: "America/Los_Angeles"  # Timezone for "closed today/this week" boundaries
 
 # Statuses to exclude from all queries (tickets in these statuses are never shown)
 closed_statuses:

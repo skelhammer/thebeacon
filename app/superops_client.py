@@ -2,6 +2,7 @@ import datetime
 import time
 import logging
 import threading
+from zoneinfo import ZoneInfo
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 
@@ -45,6 +46,7 @@ class SuperOpsClient:
         agent_cfg = config.get('agents', {})
         self.agent_cache_ttl = agent_cfg.get('cache_ttl_seconds', 300)
         self.closed_counts_cache_ttl = superops_cfg.get('closed_counts_cache_ttl_seconds', 300)
+        self.timezone = ZoneInfo(config.get('dashboard', {}).get('timezone', 'America/Los_Angeles'))
 
         # Caches
         self._cache_lock = threading.Lock()
@@ -361,36 +363,41 @@ class SuperOpsClient:
 
         return reply_ticket_ids
 
-    def fetch_closed_counts(self, view_config=None, agent_id=None):
+    def fetch_closed_counts(self, view_slug='', view_config=None, agent_id=None, force=False):
         """Fetch counts of tickets closed today and this week.
 
-        Non-blocking: returns cached data immediately if available. On cache miss,
-        kicks off a background thread and returns None counts. The next request
-        (auto-refresh) will pick up the populated cache.
+        Non-blocking on initial page load (returns None counts and fetches in
+        background). On auto-refresh (force=True), fetches synchronously so the
+        UI always gets fresh data.
 
         Args:
+            view_slug: View slug string for stable cache key.
             view_config: Optional view config dict for tech group filtering.
             agent_id: Optional agent ID to filter by.
+            force: If True, bypass cache and fetch synchronously.
 
         Returns:
             dict: {'today': int, 'this_week': int} or {'today': None, 'this_week': None} if not yet cached.
         """
-        cache_key = f"{id(view_config)}:{agent_id or ''}"
+        cache_key = f"{view_slug}:{agent_id or ''}"
         now = time.time()
 
-        with self._cache_lock:
-            cached = self._closed_counts_cache.get(cache_key)
-            if cached and (now - cached['time']) < self.closed_counts_cache_ttl:
-                return cached['counts']
+        if not force:
+            with self._cache_lock:
+                cached = self._closed_counts_cache.get(cache_key)
+                if cached and (now - cached['time']) < self.closed_counts_cache_ttl:
+                    return cached['counts']
 
-            # Already fetching in background — don't spawn another thread
-            if cache_key in self._closed_counts_fetching:
-                return {'today': None, 'this_week': None}
+                # Already fetching in background — don't spawn another thread
+                if cache_key in self._closed_counts_fetching:
+                    # Return stale cached data if available, else None
+                    if cached:
+                        return cached['counts']
+                    return {'today': None, 'this_week': None}
 
-            self._closed_counts_fetching.add(cache_key)
+                self._closed_counts_fetching.add(cache_key)
 
-        # Fetch in background thread so we don't block the page render
-        def _bg_fetch():
+        def _do_fetch():
             try:
                 closed_tickets = self._fetch_closed_tickets_recent()
 
@@ -410,11 +417,11 @@ class SuperOpsClient:
                     agent_id_str = str(agent_id)
                     closed_tickets = [t for t in closed_tickets if str(t.get('responder_id', '')) == agent_id_str]
 
-                # Compute date boundaries in UTC
-                utc_now = datetime.datetime.now(datetime.timezone.utc)
-                today_start = utc_now.replace(hour=0, minute=0, second=0, microsecond=0)
-                days_since_monday = utc_now.weekday()  # 0=Monday
-                week_start = (utc_now - datetime.timedelta(days=days_since_monday)).replace(
+                # Compute date boundaries in configured timezone
+                local_now = datetime.datetime.now(self.timezone)
+                today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+                days_since_monday = local_now.weekday()  # 0=Monday
+                week_start = (local_now - datetime.timedelta(days=days_since_monday)).replace(
                     hour=0, minute=0, second=0, microsecond=0
                 )
 
@@ -437,24 +444,39 @@ class SuperOpsClient:
                 with self._cache_lock:
                     self._closed_counts_cache[cache_key] = {'time': time.time(), 'counts': counts}
                 logger.info(f"Closed counts: today={count_today}, this_week={count_week}")
+                return counts
 
             except Exception as e:
                 logger.error(f"Failed to fetch closed ticket counts: {e}")
+                return None
             finally:
                 with self._cache_lock:
                     self._closed_counts_fetching.discard(cache_key)
 
-        thread = threading.Thread(target=_bg_fetch, daemon=True)
+        # Synchronous fetch on force refresh (auto-refresh) so counts are always fresh
+        if force:
+            result = _do_fetch()
+            if result:
+                return result
+            # Fall back to cached data if fetch failed
+            with self._cache_lock:
+                cached = self._closed_counts_cache.get(cache_key)
+                if cached:
+                    return cached['counts']
+            return {'today': None, 'this_week': None}
+
+        # Non-blocking on initial page load
+        thread = threading.Thread(target=_do_fetch, daemon=True)
         thread.start()
 
         return {'today': None, 'this_week': None}
 
     def _fetch_closed_tickets_recent(self):
-        """Fetch closed tickets and return only those from the last 7 days.
+        """Fetch recently closed tickets (last 8 days).
 
-        Fetches all closed tickets via pagination and filters by date in Python.
-        Pagination is capped at 20 pages to avoid excessive API calls.
-        Results are cached (300s TTL) so this cost is only paid infrequently.
+        Sorts by updatedTime descending so the most recently closed tickets come
+        first, then stops paginating once an entire page falls outside the cutoff.
+        This gives consistent, complete results regardless of total closed ticket count.
         """
         all_tickets = []
         page = 1
@@ -486,6 +508,7 @@ class SuperOpsClient:
                 "input": {
                     "page": page,
                     "pageSize": self.page_size,
+                    "sort": [{"attribute": "updatedTime", "order": "DESC"}],
                     "condition": {
                         "attribute": "status",
                         "operator": "includes",
@@ -501,6 +524,7 @@ class SuperOpsClient:
             if not tickets:
                 break
 
+            page_has_recent = False
             for ticket in tickets:
                 normalized = self._normalize_closed_ticket(ticket)
                 updated_str = normalized.get('updated_at_str')
@@ -509,18 +533,26 @@ class SuperOpsClient:
                         updated_dt = self._parse_closed_datetime(updated_str)
                         if updated_dt >= cutoff:
                             all_tickets.append(normalized)
+                            page_has_recent = True
                     except (ValueError, TypeError):
                         pass
+
+            # If sorted desc and no ticket on this page was recent, all
+            # subsequent pages will be older — stop early.
+            if not page_has_recent:
+                logger.debug(f"Closed ticket pagination: stopped at page {page} (all tickets older than cutoff)")
+                break
 
             list_info = result.get('listInfo', {})
             if not list_info.get('hasMore', False):
                 break
 
             page += 1
-            if page > 20:
-                logger.warning("Hit closed ticket pagination safety limit (20 pages)")
+            if page > 50:
+                logger.warning("Hit closed ticket pagination safety limit (50 pages)")
                 break
 
+        logger.debug(f"Fetched {len(all_tickets)} closed tickets from last 8 days across {page} pages")
         return all_tickets
 
     @staticmethod

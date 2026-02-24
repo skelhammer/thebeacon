@@ -130,11 +130,12 @@ def create_app(config):
             if config.get('agents', {}).get('auto_fetch', True):
                 agent_mapping = _client.fetch_technicians()
 
-            # Fetch closed ticket counts (non-blocking — failures don't break dashboard)
+            # Fetch closed ticket counts (non-blocking on initial load, sync on refresh)
             closed_counts = {'today': None, 'this_week': None}
             try:
                 closed_counts = _client.fetch_closed_counts(
-                    view_config=view_config, agent_id=agent_id
+                    view_slug=view_slug, view_config=view_config,
+                    agent_id=agent_id, force=force_refresh,
                 )
             except Exception as e:
                 logger.warning(f"Failed to fetch closed counts: {e}")
