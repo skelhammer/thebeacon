@@ -223,6 +223,16 @@ document.addEventListener('DOMContentLoaded', () => {
             maybeShowThisIsFine(totalActiveItems);
         }
 
+        // Update closed counts
+        var closedTodayEl = document.getElementById('closed-today-count');
+        var closedWeekEl = document.getElementById('closed-this-week-count');
+        if (closedTodayEl) {
+            closedTodayEl.textContent = (data.closed_today != null) ? data.closed_today : 'N/A';
+        }
+        if (closedWeekEl) {
+            closedWeekEl.textContent = (data.closed_this_week != null) ? data.closed_this_week : 'N/A';
+        }
+
         let s1Data = data.s1_items || [];
         let s2Data = data.s2_items || [];
         let s3Data = data.s3_items || [];

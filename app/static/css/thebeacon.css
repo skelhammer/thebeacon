@@ -875,6 +875,46 @@ a:hover {
     padding: 2rem;
 }
 
+/* Closed Counts Secondary Header Row */
+.card__header--secondary {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5rem 2rem;
+    background: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border-light);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.closed-counts {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+.closed-counts__item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.closed-counts__label {
+    font-weight: 500;
+}
+
+.closed-counts__value {
+    font-weight: 700;
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.closed-counts__divider {
+    color: var(--color-border-medium);
+    user-select: none;
+}
+
 /* ========================================
    Button Component (BEM)
    ======================================== */
@@ -2484,6 +2524,9 @@ table td a:hover {
         flex-direction: column;
         align-items: flex-start;
         padding: 1rem; /* Reduce header padding on mobile */
+    }
+    .card__header--secondary {
+        padding: 0.4rem 1rem;
     }
     .card__body {
         padding: 1rem; /* Ensure body padding matches */

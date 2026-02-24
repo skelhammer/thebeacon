@@ -95,12 +95,12 @@ def create_app(config):
         """Fetch, filter, and section tickets for a view.
 
         Returns:
-            tuple: (s1, s2, s3, s4, agent_mapping, error)
+            tuple: (s1, s2, s3, s4, agent_mapping, closed_counts, error)
         """
         views_config = config.get('views', {})
         view_config = views_config.get(view_slug)
         if not view_config:
-            return [], [], [], [], {}, f"Unknown view: {view_slug}"
+            return [], [], [], [], {}, {'today': None, 'this_week': None}, f"Unknown view: {view_slug}"
 
         try:
             # Fetch all tickets (force_refresh bypasses cache)
@@ -130,10 +130,19 @@ def create_app(config):
             if config.get('agents', {}).get('auto_fetch', True):
                 agent_mapping = _client.fetch_technicians()
 
-            return s1, s2, s3, s4, agent_mapping, None
+            # Fetch closed ticket counts (non-blocking — failures don't break dashboard)
+            closed_counts = {'today': None, 'this_week': None}
+            try:
+                closed_counts = _client.fetch_closed_counts(
+                    view_config=view_config, agent_id=agent_id
+                )
+            except Exception as e:
+                logger.warning(f"Failed to fetch closed counts: {e}")
+
+            return s1, s2, s3, s4, agent_mapping, closed_counts, None
         except Exception as e:
             logger.error(f"Error getting tickets for view {view_slug}: {e}")
-            return [], [], [], [], {}, "Failed to load ticket data. Check server logs for details."
+            return [], [], [], [], {}, {'today': None, 'this_week': None}, "Failed to load ticket data. Check server logs for details."
 
     def _build_ticket_url_template():
         """Get the ticket URL template from config."""
@@ -145,7 +154,7 @@ def create_app(config):
         view_info = supported_views.get(view_slug, {})
         current_view_display = view_info.get('display_name', view_slug) if isinstance(view_info, dict) else view_slug
 
-        s1, s2, s3, s4, agent_mapping, error = _get_tickets_for_view(
+        s1, s2, s3, s4, agent_mapping, closed_counts, error = _get_tickets_for_view(
             view_slug, agent_id=agent_id
         )
 
@@ -175,6 +184,8 @@ def create_app(config):
             selected_agent_id=agent_id,
             error_message=error,
             alert_thresholds=thresholds,
+            closed_today=closed_counts.get('today'),
+            closed_this_week=closed_counts.get('this_week'),
         )
 
     # --- Routes ---
@@ -205,7 +216,7 @@ def create_app(config):
         agent_id = request.args.get('agent_id', type=int)
         current_view_display = supported[view_slug]['display_name']
 
-        s1, s2, s3, s4, agent_mapping, error = _get_tickets_for_view(
+        s1, s2, s3, s4, agent_mapping, closed_counts, error = _get_tickets_for_view(
             view_slug, agent_id=agent_id, force_refresh=True
         )
 
@@ -217,6 +228,8 @@ def create_app(config):
             'total_active_items': len(s1) + len(s2) + len(s3) + len(s4),
             'dashboard_generated_time_iso': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'agent_mapping': agent_mapping,
+            'closed_today': closed_counts.get('today'),
+            'closed_this_week': closed_counts.get('this_week'),
             'error': error,
         })
 

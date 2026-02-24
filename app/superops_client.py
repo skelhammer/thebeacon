@@ -1,3 +1,4 @@
+import datetime
 import time
 import logging
 import threading
@@ -43,6 +44,7 @@ class SuperOpsClient:
 
         agent_cfg = config.get('agents', {})
         self.agent_cache_ttl = agent_cfg.get('cache_ttl_seconds', 300)
+        self.closed_counts_cache_ttl = superops_cfg.get('closed_counts_cache_ttl_seconds', 300)
 
         # Caches
         self._cache_lock = threading.Lock()
@@ -51,6 +53,8 @@ class SuperOpsClient:
         self._agent_cache = None
         self._agent_cache_time = 0
         self._conversation_cache = {}  # {ticket_id: {'updated_time': str, 'has_req_reply': bool}}
+        self._closed_counts_cache = {}  # {cache_key: {'time': float, 'counts': dict}}
+        self._closed_counts_fetching = set()  # cache_keys currently being fetched
 
     def _headers(self):
         return {
@@ -357,6 +361,205 @@ class SuperOpsClient:
 
         return reply_ticket_ids
 
+    def fetch_closed_counts(self, view_config=None, agent_id=None):
+        """Fetch counts of tickets closed today and this week.
+
+        Non-blocking: returns cached data immediately if available. On cache miss,
+        kicks off a background thread and returns None counts. The next request
+        (auto-refresh) will pick up the populated cache.
+
+        Args:
+            view_config: Optional view config dict for tech group filtering.
+            agent_id: Optional agent ID to filter by.
+
+        Returns:
+            dict: {'today': int, 'this_week': int} or {'today': None, 'this_week': None} if not yet cached.
+        """
+        cache_key = f"{id(view_config)}:{agent_id or ''}"
+        now = time.time()
+
+        with self._cache_lock:
+            cached = self._closed_counts_cache.get(cache_key)
+            if cached and (now - cached['time']) < self.closed_counts_cache_ttl:
+                return cached['counts']
+
+            # Already fetching in background — don't spawn another thread
+            if cache_key in self._closed_counts_fetching:
+                return {'today': None, 'this_week': None}
+
+            self._closed_counts_fetching.add(cache_key)
+
+        # Fetch in background thread so we don't block the page render
+        def _bg_fetch():
+            try:
+                closed_tickets = self._fetch_closed_tickets_recent()
+
+                # Apply view filtering if configured
+                if view_config:
+                    target_group_ids = view_config.get('tech_group_ids', [])
+                    exclude_group_ids = view_config.get('exclude_tech_group_ids', [])
+                    if exclude_group_ids:
+                        exclude_set = set(exclude_group_ids)
+                        closed_tickets = [t for t in closed_tickets if t.get('group_id') not in exclude_set]
+                    elif target_group_ids:
+                        target_set = set(target_group_ids)
+                        closed_tickets = [t for t in closed_tickets if t.get('group_id') in target_set]
+
+                # Apply agent filtering
+                if agent_id:
+                    agent_id_str = str(agent_id)
+                    closed_tickets = [t for t in closed_tickets if str(t.get('responder_id', '')) == agent_id_str]
+
+                # Compute date boundaries in UTC
+                utc_now = datetime.datetime.now(datetime.timezone.utc)
+                today_start = utc_now.replace(hour=0, minute=0, second=0, microsecond=0)
+                days_since_monday = utc_now.weekday()  # 0=Monday
+                week_start = (utc_now - datetime.timedelta(days=days_since_monday)).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+
+                count_today = 0
+                count_week = 0
+                for ticket in closed_tickets:
+                    updated_str = ticket.get('updated_at_str')
+                    if not updated_str:
+                        continue
+                    try:
+                        updated_dt = self._parse_closed_datetime(updated_str)
+                        if updated_dt >= today_start:
+                            count_today += 1
+                        if updated_dt >= week_start:
+                            count_week += 1
+                    except (ValueError, TypeError):
+                        continue
+
+                counts = {'today': count_today, 'this_week': count_week}
+                with self._cache_lock:
+                    self._closed_counts_cache[cache_key] = {'time': time.time(), 'counts': counts}
+                logger.info(f"Closed counts: today={count_today}, this_week={count_week}")
+
+            except Exception as e:
+                logger.error(f"Failed to fetch closed ticket counts: {e}")
+            finally:
+                with self._cache_lock:
+                    self._closed_counts_fetching.discard(cache_key)
+
+        thread = threading.Thread(target=_bg_fetch, daemon=True)
+        thread.start()
+
+        return {'today': None, 'this_week': None}
+
+    def _fetch_closed_tickets_recent(self):
+        """Fetch closed tickets and return only those from the last 7 days.
+
+        Fetches all closed tickets via pagination and filters by date in Python.
+        Pagination is capped at 20 pages to avoid excessive API calls.
+        Results are cached (300s TTL) so this cost is only paid infrequently.
+        """
+        all_tickets = []
+        page = 1
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=8)
+
+        query = """
+        query getTicketList($input: ListInfoInput!) {
+            getTicketList(input: $input) {
+                tickets {
+                    ticketId
+                    displayId
+                    status
+                    updatedTime
+                    technician
+                    techGroup
+                }
+                listInfo {
+                    page
+                    pageSize
+                    hasMore
+                    totalCount
+                }
+            }
+        }
+        """
+
+        while True:
+            variables = {
+                "input": {
+                    "page": page,
+                    "pageSize": self.page_size,
+                    "condition": {
+                        "attribute": "status",
+                        "operator": "includes",
+                        "value": self.closed_statuses,
+                    },
+                }
+            }
+
+            data = self._post_graphql(query, variables) or {}
+            result = data.get('getTicketList', {})
+            tickets = result.get('tickets', [])
+
+            if not tickets:
+                break
+
+            for ticket in tickets:
+                normalized = self._normalize_closed_ticket(ticket)
+                updated_str = normalized.get('updated_at_str')
+                if updated_str:
+                    try:
+                        updated_dt = self._parse_closed_datetime(updated_str)
+                        if updated_dt >= cutoff:
+                            all_tickets.append(normalized)
+                    except (ValueError, TypeError):
+                        pass
+
+            list_info = result.get('listInfo', {})
+            if not list_info.get('hasMore', False):
+                break
+
+            page += 1
+            if page > 20:
+                logger.warning("Hit closed ticket pagination safety limit (20 pages)")
+                break
+
+        return all_tickets
+
+    @staticmethod
+    def _normalize_closed_ticket(ticket):
+        """Normalize a closed ticket with minimal fields."""
+        technician = ticket.get('technician') or {}
+        tech_group = ticket.get('techGroup') or {}
+        return {
+            'ticket_id': ticket.get('ticketId'),
+            'id': ticket.get('displayId'),
+            'status_text': ticket.get('status') or 'Unknown',
+            'updated_at_str': ticket.get('updatedTime'),
+            'responder_id': str(technician.get('userId', '')) if technician.get('userId') else None,
+            'group_id': str(tech_group.get('groupId', '')) if tech_group.get('groupId') else None,
+        }
+
+    @staticmethod
+    def _parse_closed_datetime(dt_str):
+        """Parse a datetime string for closed ticket comparison."""
+        if not dt_str:
+            raise ValueError("Empty datetime string")
+        dt_str = dt_str.strip()
+        if dt_str.endswith('Z'):
+            dt_str = dt_str[:-1] + '+00:00'
+        try:
+            dt = datetime.datetime.fromisoformat(dt_str)
+        except ValueError:
+            for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f'):
+                try:
+                    dt = datetime.datetime.strptime(dt_str, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                raise ValueError(f"Unable to parse datetime: {dt_str}")
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt
+
     def invalidate_cache(self):
         """Invalidate all caches, forcing next fetch to hit the API."""
         self._ticket_cache = None
@@ -364,4 +567,6 @@ class SuperOpsClient:
         self._agent_cache = None
         self._agent_cache_time = 0
         self._conversation_cache = {}
+        self._closed_counts_cache = {}
+        self._closed_counts_fetching = set()
         logger.info("SuperOps cache invalidated")

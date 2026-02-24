@@ -39,6 +39,19 @@
             <strong id="dashboard-generated-time" style="font-size: 1.25rem;">Loading...</strong>
         </div>
     </div>
+    <div class="card__header--secondary">
+        <div class="closed-counts">
+            <span class="closed-counts__item">
+                <span class="closed-counts__label">Closed Today:</span>
+                <span class="closed-counts__value" id="closed-today-count">{{ closed_today if closed_today is not none else 'N/A' }}</span>
+            </span>
+            <span class="closed-counts__divider">|</span>
+            <span class="closed-counts__item">
+                <span class="closed-counts__label">Closed This Week:</span>
+                <span class="closed-counts__value" id="closed-this-week-count">{{ closed_this_week if closed_this_week is not none else 'N/A' }}</span>
+            </span>
+        </div>
+    </div>
 </div>
 
 {# --- Section 1: Open Tickets --- #}
@@ -169,7 +182,9 @@
         s4_items: {{ s4_items | tojson }},
         total_active_items: {{ (s1_items|length + s2_items|length + s3_items|length + s4_items|length) }},
         dashboard_generated_time_iso: {{ dashboard_generated_time_iso | tojson }},
-        agent_mapping: {{ agent_mapping | tojson }}
+        agent_mapping: {{ agent_mapping | tojson }},
+        closed_today: {{ closed_today | tojson }},
+        closed_this_week: {{ closed_this_week | tojson }}
     };
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}?v={{ app_version }}"></script>

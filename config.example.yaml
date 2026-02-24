@@ -7,6 +7,7 @@ superops:
   customer_subdomain: "YOUR_SUBDOMAIN"
   page_size: 100
   cache_ttl_seconds: 60
+  closed_counts_cache_ttl_seconds: 300  # Cache TTL for closed today/this week counts
 
 # URL template for linking to tickets in SuperOps UI
 # {ticket_id} will be replaced with the actual ticket display ID
