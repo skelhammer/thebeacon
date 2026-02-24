@@ -152,14 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 dashboardTimeLocalEl.textContent = formatToLocal(isoTimestamp);
             }
         }
-        document.querySelectorAll('.datetime-container').forEach(el => {
-            const utcTimestamp = el.getAttribute('data-utc-datetime');
-            const prefix = el.getAttribute('data-prefix') || "";
-            const localTimeSpan = el.querySelector('.local-datetime');
-            if (utcTimestamp && localTimeSpan) {
-                localTimeSpan.textContent = formatToLocal(utcTimestamp, {}, false, prefix);
-            }
-        });
     }
 
     const _rawTicketUrl = window.TICKET_URL_TEMPLATE || '';
@@ -176,46 +168,53 @@ document.addEventListener('DOMContentLoaded', () => {
         's4-item-table': { key: 'updated_at_str', direction: 'desc' }
     };
 
-    function renderItemRow(item) {
+    function renderItemRow(item, sectionPrefix) {
         const itemId = escapeHtml(item.id || 'N/A');
         const subjectRaw = item.subject ? item.subject.substring(0, 60) + (item.subject.length > 60 ? '...' : '') : 'No Subject';
         const subjectText = escapeHtml(subjectRaw);
         const requesterName = escapeHtml(item.requester_name || 'N/A');
-        const agentName = escapeHtml(item.agent_name || 'Unassigned');
-        const priorityText = escapeHtml(item.priority_text || 'N/A');
+        const agentFull = item.agent_name || 'Unassigned';
+        const agentName = escapeHtml(agentFull.split(' ')[0]);
+        const statusText = escapeHtml(item.status_text || 'Unknown');
         const slaText = escapeHtml(item.sla_text || 'N/A');
         const slaClass = (item.sla_class || 'sla-none').replace(/[^a-zA-Z0-9_-]/g, '');
         const updatedFriendly = escapeHtml(item.updated_friendly || 'N/A');
         const createdDaysOld = escapeHtml(item.created_days_old || 'N/A');
         const ticketId = escapeHtml(item.ticket_id || '');
 
-        let slaDetailHtml = '';
         const needsFR = !item.first_responded_at_iso && item.fr_due_by_str;
         const slaAtRisk = slaClass && slaClass !== 'sla-normal' && slaClass !== 'sla-responded' && slaClass !== 'sla-none';
-        if (needsFR && slaAtRisk) {
-            slaDetailHtml = `<div class="datetime-container" data-utc-datetime="${escapeHtml(item.fr_due_by_str)}" data-prefix="FR Due: "><small class="local-datetime">Loading...</small></div>`;
-        } else if (item.type === 'SERVICE_REQUEST' && item.due_by_str && !item.first_responded_at_iso && slaAtRisk) {
-            slaDetailHtml = `<div class="datetime-container" data-utc-datetime="${escapeHtml(item.due_by_str)}" data-prefix="Due: "><small class="local-datetime">Loading...</small></div>`;
-        }
 
         const prioritySlug = (item.priority_text || 'n-a').toLowerCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
 
-        // Row highlighting for SLA violations
+        // Row highlighting for SLA states
         let rowClass = '';
-        if (slaClass === 'sla-overdue') rowClass = ' class="row-sla-violated"';
-        else if (slaClass === 'sla-critical') rowClass = ' class="row-sla-critical"';
+        if (slaClass === 'sla-overdue') rowClass = 'row-sla-violated';
+        else if (slaClass === 'sla-critical') rowClass = 'row-sla-critical';
+        else if (slaClass === 'sla-warning') rowClass = 'row-sla-warning';
+
+        // Build SLA tooltip for the row
+        let rowTitle = '';
+        if (slaAtRisk) {
+            let slaTooltip = slaText;
+            if (needsFR && item.fr_due_by_str) {
+                slaTooltip += ' — FR Due: ' + item.fr_due_by_str;
+            } else if (item.type === 'SERVICE_REQUEST' && item.due_by_str && !item.first_responded_at_iso) {
+                slaTooltip += ' — Due: ' + item.due_by_str;
+            }
+            rowTitle = ` title="${escapeHtml(slaTooltip)}"`;
+        }
+
+        const rowAttrs = (rowClass ? ` class="${rowClass}"` : '') + rowTitle;
 
         return `
-        <tr${rowClass}>
-            <td><a href="${TICKET_URL_TEMPLATE.replace('{ticket_id}', ticketId)}" target="_blank">${itemId}</a></td>
+        <tr${rowAttrs}>
+            <td><a href="${TICKET_URL_TEMPLATE.replace('{ticket_id}', ticketId)}" target="_blank" class="ticket-id ticket-id--${prioritySlug}">#${itemId}</a></td>
             <td>${subjectText}</td>
             <td>${requesterName}</td>
             <td>${agentName}</td>
-            <td><span class="priority-badge priority-badge--${prioritySlug}">${priorityText}</span></td>
-            <td>
-                <span class="sla-status ${slaClass}">${slaText}</span>
-                ${slaDetailHtml}
-            </td>
+            <td>${statusText}</td>${sectionPrefix === 's1' ? `
+            <td>${needsFR ? formatToLocal(item.fr_due_by_str, {}, false, '') : (item.first_responded_at_iso ? 'Responded' : 'N/A')}</td>` : ''}
             <td>${updatedFriendly}</td>
             <td>${createdDaysOld}</td>
         </tr>`;
@@ -234,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sectionItemCountElement.textContent = items.length;
 
         if (items && items.length > 0) {
-            const html = items.map(item => renderItemRow(item)).join('');
+            const html = items.map(item => renderItemRow(item, sectionIdPrefix)).join('');
             tableBody.innerHTML = html;
             noItemsMessageElement.style.display = 'none';
             if (tableWrapper) tableWrapper.style.display = '';

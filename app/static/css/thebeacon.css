@@ -1980,82 +1980,52 @@ table td a:hover {
    Beacon Ticket Dashboard Styles
    ======================================== */
 
-/* Priority Badge Colors */
-.priority-badge {
+/* Priority-Colored Ticket ID Badge */
+.ticket-id {
+    display: inline-block;
     padding: 2px 8px;
     border-radius: 4px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.85em;
+    text-decoration: none;
+    white-space: nowrap;
 }
 
-.priority-badge--very-low {
-    background-color: rgba(79, 172, 254, 0.15);
-    color: var(--color-info);
+.ticket-id:hover {
+    text-decoration: underline;
 }
 
-.priority-badge--low {
-    background-color: rgba(16, 185, 129, 0.15);
-    color: var(--color-success);
+.ticket-id--very-low {
+    background-color: rgba(30, 123, 191, 0.55);
+    color: #fff;
 }
 
-.priority-badge--medium {
-    background-color: rgba(245, 158, 11, 0.15);
-    color: var(--color-warning);
+.ticket-id--low {
+    background-color: rgba(14, 148, 101, 0.55);
+    color: #fff;
 }
 
-.priority-badge--high {
-    background-color: rgba(239, 68, 68, 0.15);
-    color: var(--color-danger);
-    font-weight: 700;
+.ticket-id--medium {
+    background-color: rgba(196, 127, 8, 0.55);
+    color: #fff;
 }
 
-.priority-badge--critical {
-    background-color: rgba(239, 68, 68, 0.2);
-    color: var(--color-danger);
-    font-weight: 700;
+.ticket-id--high {
+    background-color: rgba(212, 96, 14, 0.55);
+    color: #fff;
 }
 
-.priority-badge--urgent {
-    background-color: rgba(239, 68, 68, 0.2);
-    color: var(--color-danger);
-    font-weight: 700;
+.ticket-id--critical {
+    background-color: rgba(211, 47, 47, 0.55);
+    color: #fff;
     animation: blink-animation 1.2s steps(5, start) infinite alternate;
 }
 
-/* SLA Status Colors */
-.sla-status {
-    font-weight: 500;
-}
-
-.sla-normal {
-    color: var(--color-success);
-}
-
-.sla-warning {
-    color: var(--color-warning);
-    font-weight: 600;
-}
-
-.sla-critical {
-    color: var(--color-danger);
-    font-weight: 600;
-}
-
-.sla-overdue {
-    color: var(--color-danger);
-    font-weight: 700;
-    animation: blink-animation 1.2s steps(5, start) infinite;
-}
-
-.sla-none {
+.ticket-id--n-a {
+    background-color: rgba(128, 128, 128, 0.25);
     color: var(--color-text-secondary);
 }
 
-.sla-responded,
-.sla-in-progress {
-    color: var(--color-text-secondary);
-    font-style: italic;
-}
 
 /* SLA Violation Badge (header) */
 .sla-violation-badge {
@@ -2081,24 +2051,34 @@ table td a:hover {
     50% { opacity: 0.85; transform: scale(1.05); }
 }
 
-/* Row highlighting for SLA violations */
+/* Row highlighting for SLA states */
 .row-sla-violated {
-    background: rgba(239, 68, 68, 0.12) !important;
+    background: rgba(239, 68, 68, 0.15) !important;
     border-left: 4px solid #ef4444 !important;
 }
 
 .row-sla-critical {
+    background: rgba(239, 68, 68, 0.10) !important;
+    border-left: 4px solid #ef4444 !important;
+}
+
+.row-sla-warning {
     background: rgba(245, 158, 11, 0.10) !important;
     border-left: 4px solid #f59e0b !important;
 }
 
 [data-theme="dark"] .row-sla-violated,
 .dark .row-sla-violated {
-    background: rgba(239, 68, 68, 0.18) !important;
+    background: rgba(239, 68, 68, 0.22) !important;
 }
 
 [data-theme="dark"] .row-sla-critical,
 .dark .row-sla-critical {
+    background: rgba(239, 68, 68, 0.15) !important;
+}
+
+[data-theme="dark"] .row-sla-warning,
+.dark .row-sla-warning {
     background: rgba(245, 158, 11, 0.15) !important;
 }
 
@@ -2175,13 +2155,6 @@ table td a:hover {
 }
 
 
-/* SLA Detail Text */
-.datetime-container small {
-    display: block;
-    font-size: 0.8em;
-    color: var(--color-text-secondary);
-    margin-top: 4px;
-}
 
 /* Ticket Count Display - Centered prominent count */
 .ticket-count-display {
