@@ -75,9 +75,10 @@ def _validate_config(config):
         'other_active': {'statuses': ['In Progress', 'On Hold']},
     })
 
-    config.setdefault('alert_thresholds', {
-        'calm': 50, 'good': 70, 'warning': 90, 'danger': 100, 'emergency': 110
-    })
+    threshold_defaults = {'calm': 50, 'good': 70, 'warning': 90, 'danger': 100, 'emergency': 110}
+    thresholds = config.setdefault('alert_thresholds', {})
+    for key, val in threshold_defaults.items():
+        thresholds.setdefault(key, val)
 
     dashboard = config.setdefault('dashboard', {})
     dashboard.setdefault('refresh_interval_seconds', 60)
