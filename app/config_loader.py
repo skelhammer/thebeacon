@@ -27,8 +27,12 @@ def load_config(config_path=None):
         print("Copy config.example.yaml to config.yaml and fill in your SuperOps credentials.")
         sys.exit(1)
 
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
+    try:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        print(f"ERROR: config.yaml has invalid YAML syntax:\n{e}")
+        sys.exit(1)
 
     if not config:
         print("ERROR: config.yaml is empty")

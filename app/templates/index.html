@@ -168,7 +168,8 @@
         s3_items: {{ s3_items | tojson }},
         s4_items: {{ s4_items | tojson }},
         total_active_items: {{ (s1_items|length + s2_items|length + s3_items|length + s4_items|length) }},
-        dashboard_generated_time_iso: {{ dashboard_generated_time_iso | tojson }}
+        dashboard_generated_time_iso: {{ dashboard_generated_time_iso | tojson }},
+        agent_mapping: {{ agent_mapping | tojson }}
     };
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}?v={{ app_version }}"></script>

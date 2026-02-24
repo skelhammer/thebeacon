@@ -145,7 +145,7 @@ class SuperOpsClient:
                 }
             }
 
-            data = self._post_graphql(query, variables)
+            data = self._post_graphql(query, variables) or {}
             result = data.get('getTicketList', {})
             tickets = result.get('tickets', [])
             all_tickets.extend(tickets)
@@ -240,7 +240,7 @@ class SuperOpsClient:
                         "pageSize": 100,
                     }
                 }
-                data = self._post_graphql(query, variables)
+                data = self._post_graphql(query, variables) or {}
                 result = data.get('getTechnicianList', {})
                 techs = result.get('userList', [])
                 for tech in techs:
@@ -320,7 +320,7 @@ class SuperOpsClient:
 
             def _fetch_one(ticket_id, updated_time):
                 variables = {"input": {"ticketId": ticket_id}}
-                data = self._post_graphql(query, variables)
+                data = self._post_graphql(query, variables) or {}
                 conversations = data.get('getTicketConversationList') or []
                 return bool(conversations) and conversations[-1].get('type') == 'REQ_REPLY'
 
