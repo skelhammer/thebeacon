@@ -777,27 +777,7 @@
         }
         scheduleNextQuote();
 
-        // --- 2. Glitch Effect on UI Cards ---
-        function glitchRandomCard() {
-            var cards = document.querySelectorAll('.card');
-            if (cards.length === 0) return;
-            var card = cards[Math.floor(Math.random() * cards.length)];
-            card.classList.add('matrix-glitch');
-            setTimeout(function() { card.classList.remove('matrix-glitch'); }, 300);
-        }
-
-        // Trigger every 15-25s
-        function scheduleNextGlitch() {
-            var delay = 15000 + Math.random() * 10000;
-            var t = setTimeout(function() {
-                glitchRandomCard();
-                scheduleNextGlitch();
-            }, delay);
-            matrixEasterEggTimers.push(t);
-        }
-        scheduleNextGlitch();
-
-        // --- 3. Click Cascade ---
+        // --- 2. Click Cascade ---
         var matrixCharsPool = '\uff66\uff71\uff72\uff73\uff74\uff75\uff76\uff77\uff78\uff79\uff7a0123456789ABCDEF';
         var clickOverlay = document.createElement('div');
         clickOverlay.className = 'matrix-click-overlay';
@@ -998,7 +978,6 @@
         window._debugEasterEggs = window._debugEasterEggs || {};
         window._debugEasterEggs.whiteRabbit = doWhiteRabbit;
         window._debugEasterEggs.matrixQuote = showMatrixQuote;
-        window._debugEasterEggs.matrixGlitch = glitchRandomCard;
         window._debugEasterEggs.matrixSpoon = doSpoonOverlay;
         window._debugEasterEggs.matrixGravity = konamiCallback;
 
@@ -1107,7 +1086,7 @@
         var activeFlowers = [];
 
         function createFlower() {
-            if (activeFlowers.length >= 4) return; // Max on screen
+            if (activeFlowers.length >= 3) return; // Max on screen
 
             var isHoneycomb = Math.random() < 0.35;
             var flower = document.createElement('div');
@@ -1545,25 +1524,23 @@
         // Regular bee spawning
         var beeSpawnId = setInterval(function() {
             createBee();
-        }, rand(3000, 5000));
+        }, rand(6000, 10000));
         beeTimers.push(beeSpawnId);
 
         // Flower spawning
         var flowerSpawnId = setInterval(function() {
             createFlower();
-        }, rand(10000, 18000));
+        }, rand(20000, 30000));
         beeTimers.push(flowerSpawnId);
 
         // Occasional swarm burst
         var swarmId = setInterval(function() {
             if (Math.random() < 0.3) triggerSwarm();
-        }, 15000);
+        }, 45000);
         beeTimers.push(swarmId);
 
         // Initial population
         createBee();
-        setTimeout(function() { createBee(); }, 300);
-        setTimeout(function() { createBee(); }, 900);
         setTimeout(function() { createFlower(); }, 1500);
 
         // ========================

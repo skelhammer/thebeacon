@@ -2698,7 +2698,6 @@ table td a:hover {
     font-weight: 600;
     color: var(--color-text-primary);
     letter-spacing: -0.02em;
-    white-space: nowrap;
     overflow: hidden;
     opacity: 1;
     transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -3114,20 +3113,6 @@ html.sidebar-collapsed .side-panel__label {
 
 .matrix-quote--fade {
     opacity: 0;
-}
-
-/* Glitch effect on cards */
-@keyframes matrix-glitch {
-    0%   { transform: translateX(0); clip-path: inset(0 0 0 0); }
-    20%  { transform: translateX(-3px); clip-path: inset(20% 0 60% 0); text-shadow: 2px 0 #ff0000, -2px 0 #0000ff; }
-    40%  { transform: translateX(3px); clip-path: inset(60% 0 10% 0); text-shadow: -2px 0 #ff0000, 2px 0 #0000ff; }
-    60%  { transform: translateX(-2px); clip-path: inset(40% 0 30% 0); text-shadow: 1px 0 #ff0000, -1px 0 #0000ff; }
-    80%  { transform: translateX(2px); clip-path: inset(10% 0 70% 0); text-shadow: -1px 0 #ff0000, 1px 0 #0000ff; }
-    100% { transform: translateX(0); clip-path: inset(0 0 0 0); text-shadow: none; }
-}
-
-.matrix-glitch {
-    animation: matrix-glitch 0.3s linear;
 }
 
 /* Click cascade characters */
