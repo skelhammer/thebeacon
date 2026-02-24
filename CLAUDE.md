@@ -9,11 +9,17 @@ TheBeacon is a Flask-based ticket dashboard that integrates with SuperOps' Graph
 ## Commands
 
 ```bash
-# Setup
+# Setup (Linux/macOS)
 python3 -m venv pyenv
 source pyenv/bin/activate
 pip install -r requirements.txt
 cp config.example.yaml config.yaml  # then edit with credentials
+
+# Setup (Windows)
+python -m venv pyenv
+pyenv\Scripts\activate
+pip install -r requirements.txt
+copy config.example.yaml config.yaml  # then edit with credentials
 
 # Run (dev)
 python run.py  # serves on http://localhost:5050

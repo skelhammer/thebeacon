@@ -22,21 +22,29 @@ No database required. No external service dependencies. Just a Flask app and you
 
 ## Quick Start
 
+### Linux / macOS
+
 ```bash
-# Clone
 git clone https://github.com/skelhammer/thebeacon.git
 cd thebeacon
-
-# Set up Python environment
 python3 -m venv pyenv
 source pyenv/bin/activate
 pip install -r requirements.txt
-
-# Configure
 cp config.example.yaml config.yaml
 # Edit config.yaml with your SuperOps API key and settings
+python run.py
+```
 
-# Run
+### Windows
+
+```powershell
+git clone https://github.com/skelhammer/thebeacon.git
+cd thebeacon
+python -m venv pyenv
+pyenv\Scripts\activate
+pip install -r requirements.txt
+copy config.example.yaml config.yaml
+# Edit config.yaml with your SuperOps API key and settings
 python run.py
 ```
 
