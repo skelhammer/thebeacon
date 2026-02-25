@@ -48,6 +48,10 @@ class SuperOpsClient:
         self.closed_counts_cache_ttl = superops_cfg.get('closed_counts_cache_ttl_seconds', 300)
         self.timezone = ZoneInfo(config.get('dashboard', {}).get('timezone', 'America/Los_Angeles'))
 
+        monthly_cfg = config.get('monthly_averages', {})
+        self.bh_start = monthly_cfg.get('business_hours_start', 8)
+        self.bh_end = monthly_cfg.get('business_hours_end', 17)
+
         # Caches
         self._cache_lock = threading.Lock()
         self._ticket_cache = None
@@ -57,6 +61,8 @@ class SuperOpsClient:
         self._conversation_cache = {}  # {ticket_id: {'updated_time': str, 'has_req_reply': bool}}
         self._closed_counts_cache = {}  # {cache_key: {'time': float, 'counts': dict}}
         self._closed_counts_fetching = set()  # cache_keys currently being fetched
+        self._avg_response_cache = {}  # {cache_key: {'time': float, 'value': str|None}}
+        self._avg_response_fetching = set()  # cache_keys currently being fetched
 
     def _headers(self):
         return {
@@ -471,6 +477,176 @@ class SuperOpsClient:
 
         return {'today': None, 'this_week': None}
 
+    def fetch_monthly_averages(self, view_slug='', tech_group_ids=None, force=False):
+        """Fetch average first response time and average close time (rolling 30 days).
+
+        Same non-blocking/sync pattern as fetch_closed_counts().
+
+        Args:
+            view_slug: View slug string for stable cache key.
+            tech_group_ids: List of tech group IDs to include. If empty/None, includes all.
+            force: If True, bypass cache and fetch synchronously.
+
+        Returns:
+            dict: {'avg_response_mins': str|None, 'avg_close_hours': str|None}
+        """
+        empty = {'avg_response_mins': None, 'avg_close_hours': None}
+        cache_key = f"avg_monthly:{view_slug}"
+        now = time.time()
+
+        if not force:
+            with self._cache_lock:
+                cached = self._avg_response_cache.get(cache_key)
+                if cached and (now - cached['time']) < self.closed_counts_cache_ttl:
+                    return cached['value']
+
+                if cache_key in self._avg_response_fetching:
+                    if cached:
+                        return cached['value']
+                    return empty
+
+                self._avg_response_fetching.add(cache_key)
+
+        def _do_fetch():
+            try:
+                target_set = set(tech_group_ids) if tech_group_ids else None
+                cutoff_30d = datetime.datetime.now(self.timezone) - datetime.timedelta(days=30)
+
+                # --- Avg First Response: all tickets CREATED in last 30 days ---
+                # Includes both open and closed tickets
+                active_tickets = self.fetch_tickets() or []
+                closed_tickets = self._fetch_closed_tickets_recent()
+                all_tickets = []
+
+                # Normalize active tickets to same shape for FR calculation
+                for t in active_tickets:
+                    if target_set and t.get('group_id') not in target_set:
+                        continue
+                    created_str = t.get('created_at_str')
+                    if not created_str:
+                        continue
+                    try:
+                        created_dt = self._parse_closed_datetime(created_str)
+                        if created_dt < cutoff_30d:
+                            continue
+                    except (ValueError, TypeError):
+                        continue
+                    all_tickets.append({
+                        'created_at_str': created_str,
+                        'first_response_time_str': t.get('first_responded_at_iso'),
+                    })
+
+                # Add closed tickets created in last 30 days
+                for t in closed_tickets:
+                    if target_set and t.get('group_id') not in target_set:
+                        continue
+                    created_str = t.get('created_at_str')
+                    if not created_str:
+                        continue
+                    try:
+                        created_dt = self._parse_closed_datetime(created_str)
+                        if created_dt < cutoff_30d:
+                            continue
+                    except (ValueError, TypeError):
+                        continue
+                    all_tickets.append({
+                        'created_at_str': created_str,
+                        'first_response_time_str': t.get('first_response_time_str'),
+                    })
+
+                fr_deltas = []
+                for ticket in all_tickets:
+                    fr_str = ticket.get('first_response_time_str')
+                    created_str = ticket.get('created_at_str')
+                    if not fr_str or not created_str:
+                        continue
+                    try:
+                        created_dt = self._parse_closed_datetime(created_str)
+                        fr_dt = self._parse_closed_datetime(fr_str)
+                        fr_delta = self._business_hours_between(created_dt, fr_dt)
+                        if fr_delta >= 0:
+                            fr_deltas.append(fr_delta)
+                    except (ValueError, TypeError):
+                        continue
+
+                # --- Avg Resolution: closed tickets CLOSED in last 30 days ---
+                close_deltas = []
+                for t in closed_tickets:
+                    if target_set and t.get('group_id') not in target_set:
+                        continue
+                    updated_str = t.get('updated_at_str')
+                    created_str = t.get('created_at_str')
+                    res_str = t.get('resolution_time_str')
+                    if not updated_str or not created_str or not res_str:
+                        continue
+                    try:
+                        updated_dt = self._parse_closed_datetime(updated_str)
+                        if updated_dt < cutoff_30d:
+                            continue
+                        created_dt = self._parse_closed_datetime(created_str)
+                        res_dt = self._parse_closed_datetime(res_str)
+                        close_delta = self._business_hours_between(created_dt, res_dt)
+                        if close_delta >= 0:
+                            close_deltas.append(close_delta)
+                    except (ValueError, TypeError):
+                        continue
+
+                # Format results
+                avg_response_mins = None
+                if fr_deltas:
+                    avg_secs = sum(fr_deltas) / len(fr_deltas)
+                    avg_hrs = int(avg_secs // 3600)
+                    avg_mins = int((avg_secs % 3600) // 60)
+                    if avg_hrs > 0:
+                        avg_response_mins = f"{avg_hrs}h {avg_mins}m"
+                    else:
+                        avg_response_mins = f"{avg_mins}m"
+
+                avg_close_hours = None
+                if close_deltas:
+                    avg_secs = sum(close_deltas) / len(close_deltas)
+                    avg_hrs = avg_secs / 3600
+                    if avg_hrs >= 24:
+                        days = int(avg_hrs // 24)
+                        hours = avg_hrs % 24
+                        avg_close_hours = f"{days}d {hours:.0f}h"
+                    else:
+                        avg_close_hours = f"{avg_hrs:.1f}h"
+
+                value = {
+                    'avg_response_mins': avg_response_mins,
+                    'avg_close_hours': avg_close_hours,
+                }
+
+                with self._cache_lock:
+                    self._avg_response_cache[cache_key] = {'time': time.time(), 'value': value}
+                logger.info(
+                    f"Monthly averages: response={avg_response_mins} ({len(fr_deltas)} tickets), "
+                    f"close={avg_close_hours} ({len(close_deltas)} tickets)"
+                )
+                return value
+
+            except Exception as e:
+                logger.error(f"Failed to compute monthly averages: {e}")
+                return None
+            finally:
+                with self._cache_lock:
+                    self._avg_response_fetching.discard(cache_key)
+
+        if force:
+            result = _do_fetch()
+            if result is not None:
+                return result
+            with self._cache_lock:
+                cached = self._avg_response_cache.get(cache_key)
+                if cached:
+                    return cached['value']
+            return empty
+
+        thread = threading.Thread(target=_do_fetch, daemon=True)
+        thread.start()
+        return empty
+
     def _fetch_closed_tickets_recent(self):
         """Fetch recently closed tickets (last 8 days).
 
@@ -480,7 +656,7 @@ class SuperOpsClient:
         """
         all_tickets = []
         page = 1
-        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=8)
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=32)
 
         query = """
         query getTicketList($input: ListInfoInput!) {
@@ -489,7 +665,10 @@ class SuperOpsClient:
                     ticketId
                     displayId
                     status
+                    createdTime
                     updatedTime
+                    firstResponseTime
+                    resolutionTime
                     technician
                     techGroup
                 }
@@ -548,11 +727,11 @@ class SuperOpsClient:
                 break
 
             page += 1
-            if page > 50:
-                logger.warning("Hit closed ticket pagination safety limit (50 pages)")
+            if page > 100:
+                logger.warning("Hit closed ticket pagination safety limit (100 pages)")
                 break
 
-        logger.debug(f"Fetched {len(all_tickets)} closed tickets from last 8 days across {page} pages")
+        logger.debug(f"Fetched {len(all_tickets)} closed tickets from last 32 days across {page} pages")
         return all_tickets
 
     @staticmethod
@@ -564,7 +743,10 @@ class SuperOpsClient:
             'ticket_id': ticket.get('ticketId'),
             'id': ticket.get('displayId'),
             'status_text': ticket.get('status') or 'Unknown',
+            'created_at_str': ticket.get('createdTime'),
             'updated_at_str': ticket.get('updatedTime'),
+            'first_response_time_str': ticket.get('firstResponseTime'),
+            'resolution_time_str': ticket.get('resolutionTime'),
             'responder_id': str(technician.get('userId', '')) if technician.get('userId') else None,
             'group_id': str(tech_group.get('groupId', '')) if tech_group.get('groupId') else None,
         }
@@ -592,6 +774,52 @@ class SuperOpsClient:
             dt = dt.replace(tzinfo=datetime.timezone.utc)
         return dt
 
+    def _business_hours_between(self, start_dt, end_dt):
+        """Calculate seconds of business hours between two datetimes.
+
+        Business hours: Monday-Friday in configured timezone.
+        Start/end hours from config (default 8 AM - 5 PM).
+        Timestamps outside business hours are clamped to the nearest boundary.
+        """
+        BH_START = self.bh_start
+        BH_END = self.bh_end
+
+        # Convert to configured timezone
+        start = start_dt.astimezone(self.timezone)
+        end = end_dt.astimezone(self.timezone)
+
+        if end <= start:
+            return 0.0
+
+        total_seconds = 0.0
+        current = start
+
+        # Iterate day by day
+        while current < end:
+            # Skip weekends
+            if current.weekday() >= 5:
+                current = (current + datetime.timedelta(days=1)).replace(
+                    hour=BH_START, minute=0, second=0, microsecond=0
+                )
+                continue
+
+            day_start = current.replace(hour=BH_START, minute=0, second=0, microsecond=0)
+            day_end = current.replace(hour=BH_END, minute=0, second=0, microsecond=0)
+
+            # Clamp current and end to business hours for this day
+            effective_start = max(current, day_start)
+            effective_end = min(end, day_end)
+
+            if effective_start < effective_end:
+                total_seconds += (effective_end - effective_start).total_seconds()
+
+            # Move to next business day
+            current = (current + datetime.timedelta(days=1)).replace(
+                hour=BH_START, minute=0, second=0, microsecond=0
+            )
+
+        return total_seconds
+
     def invalidate_cache(self):
         """Invalidate all caches, forcing next fetch to hit the API."""
         self._ticket_cache = None
@@ -601,4 +829,6 @@ class SuperOpsClient:
         self._conversation_cache = {}
         self._closed_counts_cache = {}
         self._closed_counts_fetching = set()
+        self._avg_response_cache = {}
+        self._avg_response_fetching = set()
         logger.info("SuperOps cache invalidated")

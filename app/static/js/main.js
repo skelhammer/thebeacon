@@ -320,6 +320,16 @@ document.addEventListener('DOMContentLoaded', () => {
             closedWeekEl.textContent = (data.closed_this_week != null) ? data.closed_this_week : 'N/A';
         }
 
+        // Update monthly averages
+        var avgResponseEl = document.getElementById('avg-response-mins');
+        var avgCloseEl = document.getElementById('avg-close-hours');
+        if (avgResponseEl) {
+            avgResponseEl.textContent = data.avg_response_mins || 'N/A';
+        }
+        if (avgCloseEl) {
+            avgCloseEl.textContent = data.avg_close_hours || 'N/A';
+        }
+
         let s1Data = data.s1_items || [];
         let s2Data = data.s2_items || [];
         let s3Data = data.s3_items || [];
@@ -370,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectedAgentId) {
                 url.searchParams.set('agent_id', selectedAgentId);
             }
-            const response = await fetch(url, { credentials: 'same-origin', signal: AbortSignal.timeout(30000) });
+            const response = await fetch(url, { credentials: 'same-origin', signal: AbortSignal.timeout(120000) });
             if (!response.ok) {
                 console.error('Failed to fetch data:', response.status);
                 if (apiErrorBanner && apiErrorMessage) {
@@ -476,10 +486,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error refreshing data:', error);
-            if (apiErrorBanner && apiErrorMessage) {
-                apiErrorMessage.textContent = 'Network error: Unable to connect to server';
-                apiErrorBanner.style.display = 'block';
-            }
+            // Silently log timeout errors — server may be busy fetching data
+            // The next successful refresh will clear any stale state
         }
     }
 

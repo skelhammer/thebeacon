@@ -95,12 +95,12 @@ def create_app(config):
         """Fetch, filter, and section tickets for a view.
 
         Returns:
-            tuple: (s1, s2, s3, s4, agent_mapping, closed_counts, error)
+            tuple: (s1, s2, s3, s4, agent_mapping, closed_counts, monthly_avgs, error)
         """
         views_config = config.get('views', {})
         view_config = views_config.get(view_slug)
         if not view_config:
-            return [], [], [], [], {}, {'today': None, 'this_week': None}, f"Unknown view: {view_slug}"
+            return [], [], [], [], {}, {'today': None, 'this_week': None}, {'avg_response_mins': None, 'avg_close_hours': None}, f"Unknown view: {view_slug}"
 
         try:
             # Fetch all tickets (force_refresh bypasses cache)
@@ -140,10 +140,21 @@ def create_app(config):
             except Exception as e:
                 logger.warning(f"Failed to fetch closed counts: {e}")
 
-            return s1, s2, s3, s4, agent_mapping, closed_counts, None
+            # Fetch monthly averages (response time, resolution time)
+            monthly_avgs = {'avg_response_mins': None, 'avg_close_hours': None}
+            avg_group_ids = config.get('monthly_averages', {}).get('tech_group_ids', [])
+            try:
+                monthly_avgs = _client.fetch_monthly_averages(
+                    view_slug=view_slug, tech_group_ids=avg_group_ids,
+                    force=force_refresh,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to fetch monthly averages: {e}")
+
+            return s1, s2, s3, s4, agent_mapping, closed_counts, monthly_avgs, None
         except Exception as e:
             logger.error(f"Error getting tickets for view {view_slug}: {e}")
-            return [], [], [], [], {}, {'today': None, 'this_week': None}, "Failed to load ticket data. Check server logs for details."
+            return [], [], [], [], {}, {'today': None, 'this_week': None}, {'avg_response_mins': None, 'avg_close_hours': None}, "Failed to load ticket data. Check server logs for details."
 
     def _build_ticket_url_template():
         """Get the ticket URL template from config."""
@@ -155,7 +166,7 @@ def create_app(config):
         view_info = supported_views.get(view_slug, {})
         current_view_display = view_info.get('display_name', view_slug) if isinstance(view_info, dict) else view_slug
 
-        s1, s2, s3, s4, agent_mapping, closed_counts, error = _get_tickets_for_view(
+        s1, s2, s3, s4, agent_mapping, closed_counts, monthly_avgs, error = _get_tickets_for_view(
             view_slug, agent_id=agent_id
         )
 
@@ -189,6 +200,8 @@ def create_app(config):
             auto_dim=auto_dim,
             closed_today=closed_counts.get('today'),
             closed_this_week=closed_counts.get('this_week'),
+            avg_response_mins=monthly_avgs.get('avg_response_mins'),
+            avg_close_hours=monthly_avgs.get('avg_close_hours'),
         )
 
     # --- Routes ---
@@ -219,7 +232,7 @@ def create_app(config):
         agent_id = request.args.get('agent_id', type=int)
         current_view_display = supported[view_slug]['display_name']
 
-        s1, s2, s3, s4, agent_mapping, closed_counts, error = _get_tickets_for_view(
+        s1, s2, s3, s4, agent_mapping, closed_counts, monthly_avgs, error = _get_tickets_for_view(
             view_slug, agent_id=agent_id, force_refresh=True
         )
 
@@ -233,6 +246,8 @@ def create_app(config):
             'agent_mapping': agent_mapping,
             'closed_today': closed_counts.get('today'),
             'closed_this_week': closed_counts.get('this_week'),
+            'avg_response_mins': monthly_avgs.get('avg_response_mins'),
+            'avg_close_hours': monthly_avgs.get('avg_close_hours'),
             'error': error,
         })
 

@@ -36,14 +36,14 @@ sudo systemctl status thebeacon    # status
 
 - **`run.py`** — Entry point
 - **`app/__init__.py`** — Flask app factory, routes, rate limiting (200/day, 60/hour), security headers
-- **`app/superops_client.py`** — GraphQL client with paginated ticket fetching, TTL caching (tickets: 60s, technicians: 300s), concurrent conversation fetching (10 workers), closed ticket counts (sorted by updatedTime DESC with early-exit pagination)
+- **`app/superops_client.py`** — GraphQL client with paginated ticket fetching, TTL caching (tickets: 60s, technicians: 300s), concurrent conversation fetching (10 workers), closed ticket counts (sorted by updatedTime DESC with early-exit pagination), monthly average metrics (first response + resolution time, business hours only)
 - **`app/ticket_mapper.py`** — Section assignment and SLA computation
 - **`app/config_loader.py`** — YAML config parsing and validation
 
 ### Frontend (Vanilla JS + Jinja2 + CSS)
 
 - **`app/templates/layout.html`** — Base template with sidebar, theme picker, kiosk mode floating dock
-- **`app/templates/index.html`** — Dashboard with 4-section ticket tables, closed today/this week counts
+- **`app/templates/index.html`** — Dashboard with 4-section ticket tables, closed today/this week counts, monthly average metrics
 - **`app/static/js/main.js`** — Dashboard logic: sorting, clock-synced auto-refresh, agent filter, new ticket notifications, auto-dim, celebration animations
 - **`app/static/js/theme.js`** — Dark/light toggle, color themes, easter eggs (matrix rain, bee animation, konami code, japan theme), debug panel (Ctrl+Shift+E)
 - **`app/static/css/thebeacon.css`** — Design system with CSS custom properties, light/dark themes, color themes (violet, gold, matrix, bee, japan), kiosk mode styles
@@ -65,7 +65,7 @@ sudo systemctl status thebeacon    # status
 
 ### Configuration (`config.yaml`)
 
-Key sections: `superops` (API credentials, cache TTL), `views` (multi-view with tech group filtering), `status_mapping` (maps SuperOps statuses to sections), `agents` (technician dropdown), `alert_thresholds` (calm/good/warning/danger/emergency ticket counts), `dashboard` (refresh interval, port, app name, timezone), `auto_dim` (TV dimming schedule with HH:MM support), `closed_statuses`.
+Key sections: `superops` (API credentials, cache TTL), `views` (multi-view with tech group filtering), `status_mapping` (maps SuperOps statuses to sections), `agents` (technician dropdown), `alert_thresholds` (calm/good/warning/danger/emergency ticket counts), `dashboard` (refresh interval, port, app name, timezone), `auto_dim` (TV dimming schedule with HH:MM support), `monthly_averages` (tech group filter, business hours for avg response/resolution time), `closed_statuses`.
 
 ### Caching Strategy
 

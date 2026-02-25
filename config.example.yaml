@@ -3,25 +3,39 @@
 
 superops:
   api_url: "https://api.superops.ai/msp"
+  # api_url: "https://euapi.superops.ai/msp"    # EU data center
   api_key: "YOUR_SUPEROPS_API_KEY_HERE"
   customer_subdomain: "YOUR_SUBDOMAIN"
   page_size: 100
   cache_ttl_seconds: 60
-  closed_counts_cache_ttl_seconds: 300  # Cache TTL for closed today/this week counts
 
 # URL template for linking to tickets in SuperOps UI
 # {ticket_id} will be replaced with the actual ticket display ID
-ticket_url_template: "https://YOUR_SUBDOMAIN.superops.ai/servicedesk/tickets/{ticket_id}"
+ticket_url_template: "https://helpdesk.yourcompany.com/#/tickets/{ticket_id}/ticket"
 
 # Named views - each filters tickets by tech group IDs
+# Use getTechnicianGroupList GraphQL query to find your group IDs
 views:
   helpdesk:
     display_name: "Helpdesk"
-    tech_group_ids: []  # Empty = show all tickets (unless exclude list is set)
-    exclude_tech_group_ids: []  # Group IDs to exclude from this view
-  pro-services:
-    display_name: "Pro Services"
-    tech_group_ids: []  # Add SuperOps tech group IDs here
+    icon: "headset"
+    tech_group_ids: []                # Empty = show all tickets (unless exclude list is set)
+    exclude_tech_group_ids: []        # Group IDs to exclude from this view
+  # pro-services:
+  #   display_name: "Pro Services"
+  #   icon: "wrench"
+  #   tech_group_ids:
+  #     - "YOUR_GROUP_ID_HERE"
+  # tier-2:
+  #   display_name: "Tier 2"
+  #   icon: "shield-check"
+  #   tech_group_ids:
+  #     - "YOUR_GROUP_ID_HERE"
+  # project:
+  #   display_name: "Project"
+  #   icon: "folder-kanban"
+  #   tech_group_ids:
+  #     - "YOUR_GROUP_ID_HERE"
 
 # Agent dropdown configuration
 agents:
@@ -30,6 +44,7 @@ agents:
 
 # Maps SuperOps ticket statuses to the 4 dashboard sections
 # Section priority: s3 (checked first) -> s1 -> s2 -> s4 (catch-all)
+# Customize these to match the statuses configured in your SuperOps instance
 status_mapping:
   open:
     statuses:
@@ -42,7 +57,6 @@ status_mapping:
   needs_agent:
     statuses:
       - "Pending"
-      - "Waiting on Agent"
     include_sla_violated: true
   other_active:
     statuses:
@@ -64,18 +78,28 @@ alert_thresholds:
 dashboard:
   refresh_interval_seconds: 60
   app_name: "The Beacon"
-  company_name: ""            # e.g. "Acme" → "The Acme Beacon"
+  company_name: ""              # e.g. "Acme" → "The Acme Beacon"
   port: 5050
-  timezone: "America/Los_Angeles"  # Timezone for "closed today/this week" boundaries
+  timezone: "America/Los_Angeles"
 
 # Auto-dim settings for TV/kiosk mode
 # Dims the screen outside business hours to save energy and reduce glare
 auto_dim:
   enabled: true
-  dim_start: "17:00"       # 5:00 PM — screen dims (HH:MM or just hour)
-  wake: "8:00"             # 8:00 AM — screen wakes (HH:MM or just hour)
-  dim_weekends: true       # Stay dimmed all day Saturday & Sunday
-  brightness_percent: 15   # How bright when dimmed (0 = black, 100 = full)
+  dim_start: "17:00"         # 5:00 PM — screen dims (HH:MM or just hour)
+  wake: "8:00"               # 8:00 AM — screen wakes (HH:MM or just hour)
+  dim_weekends: true         # Stay dimmed all day Saturday & Sunday
+  brightness_percent: 15     # How bright when dimmed (0 = black, 100 = full)
+
+# Monthly average metrics displayed in the dashboard header
+# Avg First Response: all tickets created in last 30 days (open + closed)
+# Avg Resolution Time: tickets closed in last 30 days
+# Only tickets in the listed tech groups are included
+# Business hours (weekdays only) are used for elapsed time calculations
+monthly_averages:
+  tech_group_ids: []           # Add tech group IDs to filter (empty = all groups)
+  business_hours_start: 8      # 8 AM
+  business_hours_end: 17       # 5 PM
 
 # Statuses to exclude from all queries (tickets in these statuses are never shown)
 closed_statuses:

@@ -11,6 +11,7 @@ No database required. No external service dependencies. Just a Flask app and you
 - **Agent filtering** - Dropdown to filter tickets by assigned technician
 - **Auto-refresh** - Synced to the clock, fires at the top of each minute (configurable interval)
 - **Closed ticket counts** - "Closed Today" and "Closed This Week" metrics in the header
+- **Monthly averages** - Average first response time and resolution time (business hours, rolling 30 days)
 - **New ticket notification** - Audio ping when a new ticket appears in the Open section
 - **Server-side caching** - TTL-based caching reduces API calls on page loads
 - **SLA tracking** - First response due, SLA violations, friendly time displays
@@ -82,20 +83,24 @@ ticket_url_template: "https://helpdesk.yourcompany.com/#/tickets/{ticket_id}/tic
 
 ### Views
 
-Each view filters tickets by tech group. The first view with empty `tech_group_ids` acts as a catch-all for tickets not in other views.
+Each view filters tickets by tech group. A view with empty `tech_group_ids` acts as a catch-all. Use `exclude_tech_group_ids` to exclude specific groups from a catch-all view.
 
 ```yaml
 views:
   helpdesk:
     display_name: "Helpdesk"
-    tech_group_ids: []              # Catch-all
+    icon: "headset"                        # Sidebar icon
+    tech_group_ids: []                     # Catch-all
+    exclude_tech_group_ids:
+      - "8638213111270563840"              # Exclude Pro Services
   pro-services:
     display_name: "Pro Services"
+    icon: "wrench"
     tech_group_ids:
-      - "8638213111270563840"       # SuperOps tech group ID
+      - "8638213111270563840"
 ```
 
-To find your tech group IDs, check the API response or use the SuperOps GraphQL query `getTechnicianGroupList`.
+To find your tech group IDs, use the SuperOps GraphQL query `getTechnicianGroupList`.
 
 ### Status Mapping
 
@@ -141,6 +146,26 @@ auto_dim:
   dim_weekends: true       # Stay dimmed all day Saturday & Sunday
   brightness_percent: 15   # How bright when dimmed (0 = black, 100 = full)
 ```
+
+### Monthly Averages
+
+Displays average first response time and average resolution time in the dashboard header, computed over a rolling 30-day window using business hours only (weekdays, configurable start/end times).
+
+- **Avg First Response** counts all tickets (open + closed) **created** in the last 30 days that have a first response.
+- **Avg Resolution Time** counts tickets **closed** in the last 30 days.
+
+Filter to specific tech groups to focus on your support tiers:
+
+```yaml
+monthly_averages:
+  tech_group_ids:
+    - "YOUR_TIER1_GROUP_ID"
+    - "YOUR_TIER2_GROUP_ID"
+  business_hours_start: 8    # 8 AM
+  business_hours_end: 17     # 5 PM
+```
+
+Leave `tech_group_ids` empty to include all groups.
 
 ## Kiosk / TV Mode
 

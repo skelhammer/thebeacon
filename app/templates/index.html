@@ -57,6 +57,17 @@
                 <span class="closed-counts__value" id="closed-this-week-count">{{ closed_this_week if closed_this_week is not none else 'N/A' }}</span>
             </span>
         </div>
+        <div class="closed-counts">
+            <span class="closed-counts__item">
+                <span class="closed-counts__label">Avg Response (Month):</span>
+                <span class="closed-counts__value" id="avg-response-mins">{{ avg_response_mins if avg_response_mins is not none else 'N/A' }}</span>
+            </span>
+            <span class="closed-counts__divider">|</span>
+            <span class="closed-counts__item">
+                <span class="closed-counts__label">Avg Close Time (Month):</span>
+                <span class="closed-counts__value" id="avg-close-hours">{{ avg_close_hours if avg_close_hours is not none else 'N/A' }}</span>
+            </span>
+        </div>
     </div>
 </div>
 
@@ -188,7 +199,9 @@
         dashboard_generated_time_iso: {{ dashboard_generated_time_iso | tojson }},
         agent_mapping: {{ agent_mapping | tojson }},
         closed_today: {{ closed_today | tojson }},
-        closed_this_week: {{ closed_this_week | tojson }}
+        closed_this_week: {{ closed_this_week | tojson }},
+        avg_response_mins: {{ avg_response_mins | tojson }},
+        avg_close_hours: {{ avg_close_hours | tojson }}
     };
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}?v={{ app_version }}"></script>
