@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const TICKET_URL_TEMPLATE = /^https?:\/\//.test(_rawTicketUrl) ? _rawTicketUrl : '';
     const AUTO_REFRESH_INTERVAL_MS = window.AUTO_REFRESH_MS || 0;
     const CURRENT_TICKET_TYPE_SLUG = window.CURRENT_TICKET_TYPE_SLUG || 'helpdesk';
-    const THRESHOLDS = window.ALERT_THRESHOLDS || { calm: 50, good: 70, warning: 90, danger: 100, emergency: 110 };
+    const THRESHOLDS = window.ALERT_THRESHOLDS || { ghost_town: 30, zen: 40, calm: 50, good: 60, sweating: 80, warning: 90, danger: 100 };
 
     window.currentApiData = {};
     let sortState = {
@@ -270,44 +270,85 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalActiveItemsCount) {
             totalActiveItemsCount.textContent = totalActiveItems;
 
-            // Remove all state classes
-            totalActiveItemsCount.classList.remove('count-calm', 'count-good', 'count-warning', 'count-danger', 'count-emergency', 'pulse-red');
+            // All possible count state classes
+            var allCountClasses = ['count-ghost-town', 'count-zen', 'count-calm', 'count-good', 'count-sweating', 'count-warning', 'count-danger', 'pulse-red'];
+            allCountClasses.forEach(function(cls) { totalActiveItemsCount.classList.remove(cls); });
             if (sirenLeft) sirenLeft.classList.remove('active');
             if (sirenRight) sirenRight.classList.remove('active');
 
-            // Apply appropriate state using config thresholds
-            if (totalActiveItems >= THRESHOLDS.emergency) {
-                totalActiveItemsCount.classList.add('count-emergency');
+            // Remove dynamic emoji elements from previous state
+            var wrapper = totalActiveItemsCount.closest('.ticket-count-wrapper') || totalActiveItemsCount.parentElement;
+            var oldTumbleweed = wrapper.querySelector('.tumbleweed-emoji');
+            if (oldTumbleweed) oldTumbleweed.remove();
+            var oldSweat = wrapper.querySelector('.sweat-droplet-emoji');
+            if (oldSweat) oldSweat.remove();
+            // Clean up zen floating emojis from wrapper
+            wrapper.querySelectorAll('.zen-float-emoji').forEach(function(el) { el.remove(); });
+            showZenEmojis(false);
+
+            // Apply appropriate state using config thresholds (high to low)
+            if (totalActiveItems >= (THRESHOLDS.danger || 100)) {
+                totalActiveItemsCount.classList.add('count-danger');
+                // No sirens at danger — fire replaces them
+                showPersistentDog(true);
+            } else if (totalActiveItems >= (THRESHOLDS.warning || 90)) {
+                totalActiveItemsCount.classList.add('count-warning');
                 if (sirenLeft) sirenLeft.classList.add('active');
                 if (sirenRight) sirenRight.classList.add('active');
-            } else if (totalActiveItems >= THRESHOLDS.danger) {
-                totalActiveItemsCount.classList.add('count-danger');
-            } else if (totalActiveItems >= THRESHOLDS.warning) {
-                totalActiveItemsCount.classList.add('count-warning');
-            } else if (totalActiveItems < THRESHOLDS.calm) {
-                totalActiveItemsCount.classList.add('count-calm');
-            } else if (totalActiveItems < THRESHOLDS.good) {
+                showPersistentDog(false);
+            } else if (totalActiveItems >= (THRESHOLDS.sweating || 80)) {
+                totalActiveItemsCount.classList.add('count-sweating');
+                // Add sweat droplet emoji
+                var sweat = document.createElement('span');
+                sweat.className = 'sweat-droplet-emoji';
+                sweat.textContent = '\uD83D\uDCA6'; // 💦
+                wrapper.style.position = 'relative';
+                wrapper.appendChild(sweat);
+                showPersistentDog(false);
+            } else if (totalActiveItems >= (THRESHOLDS.good || 60)) {
+                // Normal range — no class
+                showPersistentDog(false);
+            } else if (totalActiveItems >= (THRESHOLDS.calm || 50)) {
                 totalActiveItemsCount.classList.add('count-good');
+                showPersistentDog(false);
+            } else if (totalActiveItems >= (THRESHOLDS.zen || 40)) {
+                totalActiveItemsCount.classList.add('count-calm');
+                showPersistentDog(false);
+            } else if (totalActiveItems >= (THRESHOLDS.ghost_town || 30)) {
+                totalActiveItemsCount.classList.add('count-zen');
+                showZenEmojis(true, wrapper);
+                showPersistentDog(false);
+            } else {
+                // Ghost town (< ghost_town threshold)
+                totalActiveItemsCount.classList.add('count-ghost-town');
+                // Add tumbleweed drifting across
+                var tumbleweed = document.createElement('span');
+                tumbleweed.className = 'tumbleweed-emoji';
+                tumbleweed.textContent = '\uD83D\uDCA8'; // 💨
+                wrapper.style.position = 'relative';
+                wrapper.appendChild(tumbleweed);
+                showPersistentDog(false);
             }
-            // else: normal range (>= good, < warning) — no class
 
             // Celebration crossing detection
             var prev = window._previousTicketCount;
             var now = totalActiveItems;
             window._previousTicketCount = now;
 
-            if (typeof prev === 'number' && prev >= THRESHOLDS.good && now < THRESHOLDS.good) {
-                if (now < THRESHOLDS.calm) {
-                    maybeCalmCelebration();
+            // Fireworks when dropping into Calm zone (<50)
+            if (typeof prev === 'number' && prev >= THRESHOLDS.calm && now < THRESHOLDS.calm) {
+                if (now < THRESHOLDS.zen) {
+                    // Skipped straight past calm into zen — fire the big one
+                    maybeZenCelebration();
                 } else {
-                    maybeGoodCelebration();
+                    maybeFireworksCelebration();
                 }
-            } else if (typeof prev === 'number' && prev >= THRESHOLDS.calm && now < THRESHOLDS.calm) {
-                maybeCalmCelebration();
+            }
+            // Big "All Clear!" when dropping into Zen zone (<40)
+            if (typeof prev === 'number' && prev >= THRESHOLDS.zen && now < THRESHOLDS.zen) {
+                maybeZenCelebration();
             }
 
-            // "This is fine" dog easter egg
-            maybeShowThisIsFine(totalActiveItems);
         }
 
         // Update closed counts
@@ -582,62 +623,101 @@ document.addEventListener('DOMContentLoaded', () => {
     scheduleRefresh();
 
     // ========================
-    //  EASTER EGG: "This is fine" Dog
+    //  Zen Garden — floating emojis while in zen state
     // ========================
-    let _thisIsFineCooldown = 0;
+    var _zenEmojiInterval = null;
 
-    function maybeShowThisIsFine(totalActiveItems) {
-        if (totalActiveItems < THRESHOLDS.danger) return;
-        if (document.querySelector('.this-is-fine-overlay')) return;
-        var now = Date.now();
-        if (now - _thisIsFineCooldown < 600000) return; // 10-min cooldown
-        _thisIsFineCooldown = now;
-
-        // Full-screen flame overlay
-        var overlay = document.createElement('div');
-        overlay.className = 'this-is-fine-overlay';
-        document.body.appendChild(overlay);
-
-        // Spawn fire emojis raining down
-        var fireEmojis = ['\uD83D\uDD25']; // 🔥
-        for (var i = 0; i < 30; i++) {
-            (function(idx) {
-                setTimeout(function() {
-                    var flame = document.createElement('div');
-                    flame.className = 'this-is-fine-flame';
-                    flame.textContent = fireEmojis[idx % fireEmojis.length];
-                    flame.style.left = (Math.random() * 100) + 'vw';
-                    flame.style.animationDuration = (2 + Math.random() * 3) + 's';
-                    flame.style.fontSize = (20 + Math.random() * 30) + 'px';
-                    overlay.appendChild(flame);
-                    setTimeout(function() { flame.remove(); }, 6000);
-                }, idx * 150);
-            })(i);
+    function showZenEmojis(show, wrapper) {
+        if (show && wrapper) {
+            if (_zenEmojiInterval) return; // already running
+            var zenEmojis = ['\uD83E\uDDD8', '\u2638\uFE0F', '\uD83C\uDF38', '\u2728', '\uD83C\uDF3F', '\u262F\uFE0F', '\uD83E\uDD4B', '\uD83C\uDF3A']; // 🧘☸️🌸✨🌿☯️🥋🌺
+            wrapper.style.position = 'relative';
+            _zenEmojiInterval = setInterval(function() {
+                var emoji = document.createElement('span');
+                emoji.className = 'zen-float-emoji';
+                emoji.textContent = zenEmojis[Math.floor(Math.random() * zenEmojis.length)];
+                emoji.style.fontSize = (14 + Math.random() * 12) + 'px';
+                emoji.style.left = (Math.random() * 100) + '%';
+                emoji.style.bottom = '0';
+                wrapper.appendChild(emoji);
+                setTimeout(function() { emoji.remove(); }, 4500);
+            }, 800);
+        } else {
+            if (_zenEmojiInterval) {
+                clearInterval(_zenEmojiInterval);
+                _zenEmojiInterval = null;
+            }
         }
+    }
 
-        // Dog image peeking up from bottom-right
-        var dog = document.createElement('div');
-        dog.className = 'this-is-fine-dog';
-        var img = document.createElement('img');
-        img.src = '/static/img/this-is-fine.png';
-        img.alt = 'This is fine';
-        img.className = 'this-is-fine-dog__img';
-        dog.appendChild(img);
-        overlay.appendChild(dog);
+    // ========================
+    //  "This is Fine" Dog — persistent at danger threshold
+    // ========================
+    var _persistentDogEl = null;
+    var _fireParticleInterval = null;
+    var _fireGlowEl = null;
 
-        // Slide dog in
-        requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-                dog.classList.add('this-is-fine-dog--visible');
-            });
-        });
-
-        // Hold for 6s then clean up
-        setTimeout(function() {
-            overlay.classList.add('this-is-fine-overlay--fade-out');
-            dog.classList.remove('this-is-fine-dog--visible');
-            setTimeout(function() { overlay.remove(); }, 1200);
-        }, 6000);
+    function showPersistentDog(show) {
+        if (show) {
+            // Create persistent dog if not already present
+            if (!_persistentDogEl) {
+                _persistentDogEl = document.createElement('div');
+                _persistentDogEl.className = 'this-is-fine-persistent';
+                var img = document.createElement('img');
+                img.src = '/static/img/this-is-fine.png';
+                img.alt = 'This is fine';
+                img.className = 'this-is-fine-persistent__img';
+                _persistentDogEl.appendChild(img);
+                document.body.appendChild(_persistentDogEl);
+                // Slide in on next frame
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        if (_persistentDogEl) _persistentDogEl.classList.add('this-is-fine-persistent--visible');
+                    });
+                });
+            }
+            // Red glow vignette
+            if (!_fireGlowEl) {
+                _fireGlowEl = document.createElement('div');
+                _fireGlowEl.className = 'this-is-fine-glow';
+                document.body.appendChild(_fireGlowEl);
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        if (_fireGlowEl) _fireGlowEl.classList.add('this-is-fine-glow--visible');
+                    });
+                });
+            }
+            // Start fire particles if not already running
+            if (!_fireParticleInterval) {
+                _fireParticleInterval = setInterval(function() {
+                    var flame = document.createElement('div');
+                    flame.className = 'this-is-fine-fire-particle';
+                    flame.textContent = '\uD83D\uDD25'; // 🔥
+                    flame.style.left = (Math.random() * 100) + 'vw';
+                    flame.style.fontSize = (20 + Math.random() * 25) + 'px';
+                    document.body.appendChild(flame);
+                    setTimeout(function() { flame.remove(); }, 3500);
+                }, 400);
+            }
+        } else {
+            // Remove persistent dog, fire particles, and glow
+            if (_persistentDogEl) {
+                _persistentDogEl.classList.remove('this-is-fine-persistent--visible');
+                var el = _persistentDogEl;
+                _persistentDogEl = null;
+                setTimeout(function() { el.remove(); }, 1000);
+            }
+            if (_fireGlowEl) {
+                _fireGlowEl.classList.remove('this-is-fine-glow--visible');
+                var glow = _fireGlowEl;
+                _fireGlowEl = null;
+                setTimeout(function() { glow.remove(); }, 1500);
+            }
+            if (_fireParticleInterval) {
+                clearInterval(_fireParticleInterval);
+                _fireParticleInterval = null;
+            }
+        }
     }
 
     // ========================
@@ -696,48 +776,44 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.addEventListener('click', dismiss);
         document.addEventListener('keydown', dismiss);
 
-        // Auto-dismiss after 8s
-        setTimeout(dismiss, 8000);
+        // Auto-dismiss after 10s
+        setTimeout(dismiss, 10000);
     }
 
     function show420Event() {
-        var leafEmojis = ['\uD83C\uDF3F', '\uD83C\uDF43', '\u2618\uFE0F']; // 🌿🍃☘️
-        for (var i = 0; i < 15; i++) {
-            (function(idx) {
-                setTimeout(function() {
-                    var leaf = document.createElement('div');
-                    leaf.className = 'event-420-leaf';
-                    leaf.textContent = leafEmojis[idx % leafEmojis.length];
-                    leaf.style.left = (Math.random() * 100) + 'vw';
-                    leaf.style.animationDuration = (3 + Math.random() * 2) + 's';
-                    document.body.appendChild(leaf);
-                    setTimeout(function() { leaf.remove(); }, 6000);
-                }, idx * 200);
-            })(i);
-        }
+        // Haze overlay — layered translucent smoke filling the screen
+        var hazeOverlay = document.createElement('div');
+        hazeOverlay.className = 'event-420-haze';
+        document.body.appendChild(hazeOverlay);
 
-        // Smoke puffs rising from the bottom
+        // Continuous falling leaves for the full minute
+        var leafEmojis = ['\uD83C\uDF3F', '\uD83C\uDF43', '\u2618\uFE0F']; // 🌿🍃☘️
+        var leafInterval = setInterval(function() {
+            var leaf = document.createElement('div');
+            leaf.className = 'event-420-leaf';
+            leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+            leaf.style.left = (Math.random() * 100) + 'vw';
+            leaf.style.animationDuration = (4 + Math.random() * 3) + 's';
+            document.body.appendChild(leaf);
+            setTimeout(function() { leaf.remove(); }, 8000);
+        }, 300);
+
+        // Continuous wispy smoke puffs rising
         var smokeContainer = document.createElement('div');
         smokeContainer.className = 'event-420-smoke-container';
         document.body.appendChild(smokeContainer);
 
-        var smokePuffs = [];
-        for (var s = 0; s < 60; s++) {
-            (function(idx) {
-                var delay = idx * 80 + Math.random() * 200;
-                var t = setTimeout(function() {
-                    var puff = document.createElement('div');
-                    puff.className = 'event-420-puff';
-                    puff.style.left = (Math.random() * 100) + 'vw';
-                    puff.style.animationDuration = (3 + Math.random() * 3) + 's';
-                    var size = 80 + Math.random() * 160;
-                    puff.style.width = size + 'px';
-                    puff.style.height = size + 'px';
-                    smokeContainer.appendChild(puff);
-                    smokePuffs.push(puff);
-                }, delay);
-            })(s);
-        }
+        var smokeInterval = setInterval(function() {
+            var puff = document.createElement('div');
+            puff.className = 'event-420-puff';
+            puff.style.left = (10 + Math.random() * 80) + 'vw';
+            puff.style.animationDuration = (6 + Math.random() * 5) + 's';
+            var size = 120 + Math.random() * 200;
+            puff.style.width = size + 'px';
+            puff.style.height = (size * 0.6) + 'px';
+            smokeContainer.appendChild(puff);
+            setTimeout(function() { puff.remove(); }, 12000);
+        }, 250);
 
         // Badge
         var badge = document.createElement('div');
@@ -745,11 +821,19 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.textContent = '4:20';
         document.body.appendChild(badge);
 
+        // Dismiss after 60s (full minute)
         setTimeout(function() {
+            clearInterval(leafInterval);
+            clearInterval(smokeInterval);
+            hazeOverlay.classList.add('event-420-haze--fade-out');
             smokeContainer.classList.add('event-420-smoke-container--fade-out');
             badge.classList.add('event-420-badge--fade-out');
-            setTimeout(function() { badge.remove(); smokeContainer.remove(); }, 1000);
-        }, 5000);
+            setTimeout(function() {
+                hazeOverlay.remove();
+                smokeContainer.remove();
+                badge.remove();
+            }, 2000);
+        }, 60000);
     }
 
     function showBeerEvent() {
@@ -789,61 +873,75 @@ document.addEventListener('DOMContentLoaded', () => {
     // ========================
     //  CELEBRATION EASTER EGGS
     // ========================
-    let _goodCelebrationCooldown = 0;
-    let _calmCelebrationCooldown = 0;
+    let _fireworksCooldown = 0;
+    let _zenCelebrationCooldown = 0;
 
-    function showGoodCelebration() {
-        var countEl = document.getElementById('total-active-items-count');
-        if (!countEl) return;
+    function showFireworksCelebration() {
+        var W = window.innerWidth;
+        var H = window.innerHeight;
+        var colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#ffffff'];
+        var burstCount = 5;
 
-        var rect = countEl.getBoundingClientRect();
-        var cx = rect.left + rect.width / 2;
-        var cy = rect.top + rect.height / 2;
+        for (var b = 0; b < burstCount; b++) {
+            (function(burstIdx) {
+                var delay = burstIdx * 400 + Math.random() * 300;
+                setTimeout(function() {
+                    // Launch point: random x, burst near top third
+                    var bx = 80 + Math.random() * (W - 160);
+                    var by = 60 + Math.random() * (H * 0.35);
+                    var burstColor = colors[Math.floor(Math.random() * colors.length)];
+                    var particleCount = 14 + Math.floor(Math.random() * 8);
 
-        var emojis = ['\uD83C\uDF89', '\uD83C\uDF8A', '\u2728', '\uD83C\uDF1F', '\uD83D\uDCAB', '\uD83C\uDF8A']; // 🎉🎊✨🌟💫🎊
-        var particleCount = 10;
+                    // Launch trail
+                    var trail = document.createElement('div');
+                    trail.className = 'firework-trail';
+                    trail.style.left = bx + 'px';
+                    trail.style.setProperty('--fy', by + 'px');
+                    document.body.appendChild(trail);
+                    setTimeout(function() { trail.remove(); }, 600);
 
-        for (var i = 0; i < particleCount; i++) {
-            (function(idx) {
-                var particle = document.createElement('div');
-                particle.className = 'celebration-particle';
-                particle.textContent = emojis[idx % emojis.length];
-
-                // Radial distribution
-                var angle = (idx / particleCount) * Math.PI * 2 + (Math.random() * 0.4 - 0.2);
-                var distance = 60 + Math.random() * 80;
-                var tx = Math.cos(angle) * distance;
-                var ty = Math.sin(angle) * distance;
-
-                particle.style.left = cx + 'px';
-                particle.style.top = cy + 'px';
-                particle.style.setProperty('--tx', tx + 'px');
-                particle.style.setProperty('--ty', ty + 'px');
-                particle.style.animationDelay = (idx * 30) + 'ms';
-
-                document.body.appendChild(particle);
-                setTimeout(function() { particle.remove(); }, 1800);
-            })(i);
+                    // Burst particles after trail
+                    setTimeout(function() {
+                        for (var p = 0; p < particleCount; p++) {
+                            var spark = document.createElement('div');
+                            spark.className = 'firework-spark';
+                            var angle = (p / particleCount) * Math.PI * 2 + (Math.random() * 0.3 - 0.15);
+                            var dist = 40 + Math.random() * 80;
+                            spark.style.left = bx + 'px';
+                            spark.style.top = by + 'px';
+                            spark.style.setProperty('--sx', (Math.cos(angle) * dist) + 'px');
+                            spark.style.setProperty('--sy', (Math.sin(angle) * dist) + 'px');
+                            spark.style.backgroundColor = burstColor;
+                            spark.style.boxShadow = '0 0 6px ' + burstColor + ', 0 0 12px ' + burstColor;
+                            document.body.appendChild(spark);
+                            setTimeout(function() { spark.remove(); }, 1500);
+                        }
+                    }, 400);
+                }, delay);
+            })(b);
         }
 
         // Brief green glow pulse on count element
-        countEl.classList.add('celebration-glow');
-        setTimeout(function() { countEl.classList.remove('celebration-glow'); }, 1500);
+        var countEl = document.getElementById('total-active-items-count');
+        if (countEl) {
+            countEl.classList.add('celebration-glow');
+            setTimeout(function() { countEl.classList.remove('celebration-glow'); }, 1500);
+        }
     }
 
-    function maybeGoodCelebration() {
-        if (document.querySelector('.celebration-particle')) return;
+    function maybeFireworksCelebration() {
+        if (document.querySelector('.firework-spark')) return;
         var now = Date.now();
-        if (now - _goodCelebrationCooldown < 600000) return; // 10-min cooldown
-        _goodCelebrationCooldown = now;
-        showGoodCelebration();
+        if (now - _fireworksCooldown < 600000) return; // 10-min cooldown
+        _fireworksCooldown = now;
+        showFireworksCelebration();
     }
 
-    function showCalmCelebration() {
-        if (document.querySelector('.celebration-calm-overlay')) return;
+    function showZenCelebration() {
+        if (document.querySelector('.celebration-zen-overlay')) return;
 
         var overlay = document.createElement('div');
-        overlay.className = 'celebration-calm-overlay';
+        overlay.className = 'celebration-zen-overlay';
 
         // Trophy
         var trophy = document.createElement('div');
@@ -884,98 +982,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function dismiss() {
             clearTimeout(dismissTimer);
-            overlay.classList.add('celebration-calm-overlay--fade-out');
+            overlay.classList.add('celebration-zen-overlay--fade-out');
             setTimeout(function() { overlay.remove(); }, 800);
         }
     }
 
-    function maybeCalmCelebration() {
-        if (document.querySelector('.celebration-calm-overlay')) return;
+    function maybeZenCelebration() {
+        if (document.querySelector('.celebration-zen-overlay')) return;
         var now = Date.now();
-        if (now - _calmCelebrationCooldown < 600000) return; // 10-min cooldown
-        _calmCelebrationCooldown = now;
-        showCalmCelebration();
+        if (now - _zenCelebrationCooldown < 600000) return; // 10-min cooldown
+        _zenCelebrationCooldown = now;
+        showZenCelebration();
     }
 
     // Expose forced triggers for debug menu
     window._debugEasterEggs = window._debugEasterEggs || {};
-    window._debugEasterEggs.thisIsFine = function() {
-        // Bypass cooldown and threshold check
-        var origCooldown = _thisIsFineCooldown;
-        _thisIsFineCooldown = 0;
-        // Remove existing overlay if present
-        var existing = document.querySelector('.this-is-fine-overlay');
-        if (existing) existing.remove();
-        // Force-call with a value above danger threshold
-        maybeShowThisIsFine(THRESHOLDS.danger);
-        _thisIsFineCooldown = origCooldown;
-    };
     window._debugEasterEggs.event404 = show404Event;
     window._debugEasterEggs.event420 = show420Event;
     window._debugEasterEggs.eventBeer = showBeerEvent;
-    window._debugEasterEggs.goodCelebration = function() { showGoodCelebration(); };
-    window._debugEasterEggs.calmCelebration = function() { showCalmCelebration(); };
 
     // Debug: preview threshold visual states on the count number
-    window._debugEasterEggs.stateCalm = function() {
+    var _allCountClasses = ['count-ghost-town', 'count-zen', 'count-calm', 'count-good', 'count-sweating', 'count-warning', 'count-danger', 'pulse-red'];
+    function _debugSetState(cls, sirens, persistentDog) {
         var el = document.getElementById('total-active-items-count');
         if (!el) return;
-        el.classList.remove('count-calm', 'count-good', 'count-warning', 'count-danger', 'count-emergency', 'pulse-red');
+        _allCountClasses.forEach(function(c) { el.classList.remove(c); });
+        var wrapper = el.closest('.ticket-count-wrapper') || el.parentElement;
+        var oldTw = wrapper.querySelector('.tumbleweed-emoji');
+        if (oldTw) oldTw.remove();
+        var oldSw = wrapper.querySelector('.sweat-droplet-emoji');
+        if (oldSw) oldSw.remove();
+        wrapper.querySelectorAll('.zen-float-emoji').forEach(function(e) { e.remove(); });
+        showZenEmojis(false);
         var sirenL = document.getElementById('siren-left');
         var sirenR = document.getElementById('siren-right');
         if (sirenL) sirenL.classList.remove('active');
         if (sirenR) sirenR.classList.remove('active');
-        el.classList.add('count-calm');
-    };
-    window._debugEasterEggs.stateGood = function() {
-        var el = document.getElementById('total-active-items-count');
-        if (!el) return;
-        el.classList.remove('count-calm', 'count-good', 'count-warning', 'count-danger', 'count-emergency', 'pulse-red');
-        var sirenL = document.getElementById('siren-left');
-        var sirenR = document.getElementById('siren-right');
-        if (sirenL) sirenL.classList.remove('active');
-        if (sirenR) sirenR.classList.remove('active');
-        el.classList.add('count-good');
-    };
-    window._debugEasterEggs.stateWarning = function() {
-        var el = document.getElementById('total-active-items-count');
-        if (!el) return;
-        el.classList.remove('count-calm', 'count-good', 'count-warning', 'count-danger', 'count-emergency', 'pulse-red');
-        var sirenL = document.getElementById('siren-left');
-        var sirenR = document.getElementById('siren-right');
-        if (sirenL) sirenL.classList.remove('active');
-        if (sirenR) sirenR.classList.remove('active');
-        el.classList.add('count-warning');
-    };
-    window._debugEasterEggs.stateDanger = function() {
-        var el = document.getElementById('total-active-items-count');
-        if (!el) return;
-        el.classList.remove('count-calm', 'count-good', 'count-warning', 'count-danger', 'count-emergency', 'pulse-red');
-        var sirenL = document.getElementById('siren-left');
-        var sirenR = document.getElementById('siren-right');
-        if (sirenL) sirenL.classList.remove('active');
-        if (sirenR) sirenR.classList.remove('active');
-        el.classList.add('count-danger');
-    };
-    window._debugEasterEggs.stateEmergency = function() {
-        var el = document.getElementById('total-active-items-count');
-        if (!el) return;
-        el.classList.remove('count-calm', 'count-good', 'count-warning', 'count-danger', 'count-emergency', 'pulse-red');
-        var sirenL = document.getElementById('siren-left');
-        var sirenR = document.getElementById('siren-right');
-        if (sirenL) sirenL.classList.add('active');
-        if (sirenR) sirenR.classList.add('active');
-        el.classList.add('count-emergency');
-    };
-    window._debugEasterEggs.stateNormal = function() {
-        var el = document.getElementById('total-active-items-count');
-        if (!el) return;
-        el.classList.remove('count-calm', 'count-good', 'count-warning', 'count-danger', 'count-emergency', 'pulse-red');
-        var sirenL = document.getElementById('siren-left');
-        var sirenR = document.getElementById('siren-right');
-        if (sirenL) sirenL.classList.remove('active');
-        if (sirenR) sirenR.classList.remove('active');
-    };
+        if (cls) el.classList.add(cls);
+        if (sirens) {
+            if (sirenL) sirenL.classList.add('active');
+            if (sirenR) sirenR.classList.add('active');
+        }
+        // Add dynamic elements for relevant states
+        if (cls === 'count-ghost-town') {
+            var tw = document.createElement('span');
+            tw.className = 'tumbleweed-emoji';
+            tw.textContent = '\uD83D\uDCA8';
+            wrapper.style.position = 'relative';
+            wrapper.appendChild(tw);
+        }
+        if (cls === 'count-zen') {
+            showZenEmojis(true, wrapper);
+        }
+        if (cls === 'count-sweating') {
+            var sw = document.createElement('span');
+            sw.className = 'sweat-droplet-emoji';
+            sw.textContent = '\uD83D\uDCA6';
+            wrapper.style.position = 'relative';
+            wrapper.appendChild(sw);
+        }
+        // Toggle persistent dog for danger preview
+        showPersistentDog(!!persistentDog);
+    }
+    window._debugEasterEggs.stateGhostTown = function() { _debugSetState('count-ghost-town'); };
+    window._debugEasterEggs.stateZen = function() { _debugSetState('count-zen'); showZenCelebration(); };
+    window._debugEasterEggs.stateCalm = function() { _debugSetState('count-calm'); showFireworksCelebration(); };
+    window._debugEasterEggs.stateGood = function() { _debugSetState('count-good'); };
+    window._debugEasterEggs.stateNormal = function() { _debugSetState(null); };
+    window._debugEasterEggs.stateSweating = function() { _debugSetState('count-sweating'); };
+    window._debugEasterEggs.stateSOS = function() { _debugSetState('count-warning', true); };
+    window._debugEasterEggs.stateThisIsFine = function() { _debugSetState('count-danger', false, true); };
 
     // ========================
     //  AUTO-DIM (TV/Kiosk Mode)

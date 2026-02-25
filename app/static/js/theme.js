@@ -2392,9 +2392,6 @@
                     note: 'Works on any theme',
                     color: '#818cf8',
                     buttons: [
-                        { text: '"This is fine" Dog', key: 'thisIsFine', icon: '\uD83D\uDC36' },
-                        { text: 'Good Celebration', key: 'goodCelebration', icon: '\uD83C\uDF89' },
-                        { text: 'Calm Celebration', key: 'calmCelebration', icon: '\uD83C\uDFC6' },
                         { text: '4:04 Overlay', key: 'event404', icon: '\u2753' },
                         { text: '4:20 Leaf Rain', key: 'event420', icon: '\uD83C\uDF3F' },
                         { text: '5:00 Beer', key: 'eventBeer', icon: '\uD83C\uDF7A' },
@@ -2405,12 +2402,14 @@
                     note: 'Preview count styles',
                     color: '#6ee7b7',
                     buttons: [
+                        { text: 'Ghost Town', key: 'stateGhostTown', icon: '\uD83C\uDFDA\uFE0F' },
+                        { text: 'Zen Garden', key: 'stateZen', icon: '\uD83E\uDDD8' },
                         { text: 'Calm', key: 'stateCalm', icon: '\uD83D\uDFE2' },
                         { text: 'Good', key: 'stateGood', icon: '\u2705' },
                         { text: 'Normal', key: 'stateNormal', icon: '\u26AA' },
-                        { text: 'Warning', key: 'stateWarning', icon: '\uD83D\uDFE1' },
-                        { text: 'Danger', key: 'stateDanger', icon: '\uD83D\uDD34' },
-                        { text: 'Emergency', key: 'stateEmergency', icon: '\uD83D\uDEA8' },
+                        { text: 'Sweating', key: 'stateSweating', icon: '\uD83D\uDE13' },
+                        { text: 'SOS', key: 'stateSOS', icon: '\uD83D\uDEA8' },
+                        { text: 'This is Fine', key: 'stateThisIsFine', icon: '\uD83D\uDC36' },
                     ]
                 },
                 {

@@ -66,13 +66,18 @@ status_mapping:
       - "Waiting on Third Party"
 
 # Alert thresholds for total ticket count display
-# calm/good = positive states (green), warning+ = negative states
+# Each tier triggers at >= the value. Tiers (low to high):
+# ghost_town (<30), zen (30-39), calm (40-49), good (50-59),
+# normal (60-79, no effects), sweating (80-89), warning/SOS (90-99),
+# danger/"This is Fine" (100+)
 alert_thresholds:
+  ghost_town: 30
+  zen: 40
   calm: 50
-  good: 70
+  good: 60
+  sweating: 80
   warning: 90
   danger: 100
-  emergency: 110
 
 # Dashboard settings
 dashboard:

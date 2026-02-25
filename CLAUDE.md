@@ -65,7 +65,7 @@ sudo systemctl status thebeacon    # status
 
 ### Configuration (`config.yaml`)
 
-Key sections: `superops` (API credentials, cache TTL), `views` (multi-view with tech group filtering), `status_mapping` (maps SuperOps statuses to sections), `agents` (technician dropdown), `alert_thresholds` (calm/good/warning/danger/emergency ticket counts), `dashboard` (refresh interval, port, app name, timezone), `auto_dim` (TV dimming schedule with HH:MM support), `monthly_averages` (tech group filter, business hours for avg response/resolution time), `closed_statuses`.
+Key sections: `superops` (API credentials, cache TTL), `views` (multi-view with tech group filtering), `status_mapping` (maps SuperOps statuses to sections), `agents` (technician dropdown), `alert_thresholds` (8-tier threshold system: ghost_town/<30, zen/30-39, calm/40-49, good/50-59, normal/60-79, sweating/80-89, warning+SOS/90-99, danger+"This is Fine"/100+), `dashboard` (refresh interval, port, app name, timezone), `auto_dim` (TV dimming schedule with HH:MM support), `monthly_averages` (tech group filter, business hours for avg response/resolution time), `closed_statuses`.
 
 ### Caching Strategy
 

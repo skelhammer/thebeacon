@@ -79,7 +79,7 @@ def _validate_config(config):
         'other_active': {'statuses': ['In Progress', 'On Hold']},
     })
 
-    threshold_defaults = {'calm': 50, 'good': 70, 'warning': 90, 'danger': 100, 'emergency': 110}
+    threshold_defaults = {'ghost_town': 30, 'zen': 40, 'calm': 50, 'good': 60, 'sweating': 80, 'warning': 90, 'danger': 100}
     thresholds = config.setdefault('alert_thresholds', {})
     for key, val in threshold_defaults.items():
         thresholds.setdefault(key, val)

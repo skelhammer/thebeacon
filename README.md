@@ -19,7 +19,7 @@ No database required. No external service dependencies. Just a Flask app and you
 - **Dark/light mode** - Toggle with persistent localStorage preference
 - **Color themes** - Violet and MSP Gold (plus hidden easter egg themes)
 - **Collapsible sidebar** - Hamburger menu toggle
-- **Alert thresholds** - Visual warnings when ticket count gets high (sirens at emergency level)
+- **Alert thresholds** - 8-tier visual system from Ghost Town to "This is Fine" with fireworks, sirens, and fire effects
 - **Kiosk/TV mode** - Full-width layout with hidden controls, ideal for wall-mounted displays
 - **Auto-dim** - Dims the screen outside business hours with configurable schedule
 - **Easter eggs** - There may be secrets hidden in the dashboard...
@@ -123,15 +123,18 @@ status_mapping:
 
 ### Alert Thresholds
 
-Visual indicators on the total ticket count. Calm/good are positive states (green), warning+ are negative:
+Visual indicators on the total ticket count. 8 tiers from low to high:
 
 ```yaml
 alert_thresholds:
-  calm: 50        # Green glow
-  good: 70        # Green
-  warning: 90     # Yellow
-  danger: 100     # Orange
-  emergency: 110  # Red + sirens
+  ghost_town: 30  # Gray pulse + wind emoji (<30)
+  zen: 40         # Aurora shimmer + floating zen emojis (30-39)
+  calm: 50        # Green glow pulse + fireworks on entry (40-49)
+  good: 60        # Static green (50-59)
+  # normal: 60-79 — no effects
+  sweating: 80    # Amber wobble + sweat emoji (80-89)
+  warning: 90     # Red glow + red/blue cop lights (90-99)
+  danger: 100     # Fire text + persistent dog + fire particles + red vignette (100+)
 ```
 
 ### Auto-Dim (TV Mode)
