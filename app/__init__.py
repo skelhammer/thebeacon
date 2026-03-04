@@ -10,6 +10,7 @@ from app.ticket_mapper import (
     map_tickets_to_sections,
     filter_by_view,
     filter_by_agent,
+    set_api_timezone,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,10 @@ def create_app(config):
         Flask app instance.
     """
     global _client
+
+    # Set timezone for interpreting naive datetimes from SuperOps API
+    tz_name = config.get('dashboard', {}).get('timezone', 'UTC')
+    set_api_timezone(tz_name)
 
     app = Flask(__name__, static_folder='static')
     app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(32))

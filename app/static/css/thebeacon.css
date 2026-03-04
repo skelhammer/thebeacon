@@ -1537,9 +1537,9 @@ table td a:hover {
 /* Toast Notifications */
 .toast-container {
     position: fixed;
-    top: 1rem;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     z-index: 100000;
     display: flex;
     flex-direction: column;
@@ -1551,33 +1551,34 @@ table td a:hover {
     padding: 1rem 1.25rem;
     border-radius: 12px;
     border-left: 4px solid;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    animation: toastSlideIn 0.3s ease-out;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    animation: toastSlideIn 0.35s ease-out;
     cursor: pointer;
+    font-size: 1.05rem;
 }
 
 .toast--success {
-    background: rgba(16, 185, 129, 0.95);
+    background: rgba(6, 78, 54, 0.95);
     border-left-color: #10b981;
-    color: #ffffff;
+    color: #d1fae5;
 }
 
 .toast--error {
-    background: rgba(239, 68, 68, 0.95);
+    background: rgba(127, 29, 29, 0.95);
     border-left-color: #ef4444;
-    color: #ffffff;
+    color: #fecaca;
 }
 
 .toast--warning {
-    background: rgba(245, 158, 11, 0.95);
+    background: rgba(120, 63, 4, 0.95);
     border-left-color: #f59e0b;
-    color: #ffffff;
+    color: #fef3c7;
 }
 
 .toast--info {
-    background: rgba(100, 116, 139, 0.95);
+    background: rgba(51, 65, 85, 0.95);
     border-left-color: #64748b;
-    color: #ffffff;
+    color: #e2e8f0;
 }
 
 .toast.toast--hiding {
@@ -1586,22 +1587,22 @@ table td a:hover {
 
 @keyframes toastSlideIn {
     from {
-        transform: translateY(-100%);
+        transform: translateX(-120%);
         opacity: 0;
     }
     to {
-        transform: translateY(0);
+        transform: translateX(0);
         opacity: 1;
     }
 }
 
 @keyframes toastSlideOut {
     from {
-        transform: translateY(0);
+        transform: translateX(0);
         opacity: 1;
     }
     to {
-        transform: translateY(-100%);
+        transform: translateX(120%);
         opacity: 0;
     }
 }
@@ -2007,33 +2008,33 @@ table td a:hover {
 }
 
 .ticket-id--very-low {
-    background-color: rgba(30, 123, 191, 0.55);
+    background-color: rgba(56, 152, 216, 0.75);
     color: #fff;
 }
 
 .ticket-id--low {
-    background-color: rgba(14, 148, 101, 0.55);
+    background-color: rgba(34, 170, 120, 0.75);
     color: #fff;
 }
 
 .ticket-id--medium {
-    background-color: rgba(196, 127, 8, 0.55);
+    background-color: rgba(212, 180, 32, 0.80);
     color: #fff;
 }
 
 .ticket-id--high {
-    background-color: rgba(212, 96, 14, 0.55);
+    background-color: rgba(240, 100, 20, 0.85);
     color: #fff;
 }
 
 .ticket-id--critical {
-    background-color: rgba(211, 47, 47, 0.55);
+    background-color: rgba(220, 50, 50, 0.85);
     color: #fff;
     animation: blink-animation 1.2s steps(5, start) infinite alternate;
 }
 
 .ticket-id--n-a {
-    background-color: rgba(128, 128, 128, 0.25);
+    background-color: rgba(128, 128, 128, 0.35);
     color: var(--color-text-secondary);
 }
 
@@ -2060,6 +2061,17 @@ table td a:hover {
 @keyframes sla-badge-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+/* Row highlighting for Critical priority */
+.row-priority-critical {
+    background: rgba(211, 47, 47, 0.12) !important;
+    border-left: 4px solid #d32f2f !important;
+}
+
+[data-theme="dark"] .row-priority-critical,
+.dark .row-priority-critical {
+    background: rgba(211, 47, 47, 0.18) !important;
 }
 
 /* Row highlighting for SLA states */

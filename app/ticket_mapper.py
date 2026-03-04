@@ -1,7 +1,21 @@
 import datetime
 import logging
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
+
+# Module-level default; overridden by set_api_timezone()
+_api_timezone = datetime.timezone.utc
+
+
+def set_api_timezone(tz_name):
+    """Set the timezone used to interpret naive datetimes from the API."""
+    global _api_timezone
+    try:
+        _api_timezone = ZoneInfo(tz_name)
+    except Exception:
+        logger.warning(f"Invalid timezone '{tz_name}', falling back to UTC")
+        _api_timezone = datetime.timezone.utc
 
 
 def map_tickets_to_sections(tickets, config):
@@ -140,14 +154,15 @@ def compute_sla_fields(ticket):
     else:
         ticket['updated_friendly'] = 'N/A'
 
-    # Compute created_days_old
+    # Compute created_days_old (compare dates in API timezone)
     created_str = ticket.get('created_at_str')
     if created_str:
         try:
             created_dt = _parse_datetime(created_str)
-            delta = now - created_dt
-            days = delta.days
-            if days == 0:
+            today = now.astimezone(_api_timezone).date()
+            created_date = created_dt.astimezone(_api_timezone).date()
+            days = (today - created_date).days
+            if days <= 0:
                 ticket['created_days_old'] = 'Today'
             elif days == 1:
                 ticket['created_days_old'] = '1 day'
@@ -230,7 +245,7 @@ def _parse_datetime(dt_str):
         if dt is None:
             raise ValueError(f"Unable to parse datetime: {dt_str}")
 
-    # Ensure timezone-aware (assume UTC if naive)
+    # Ensure timezone-aware (assume UTC if naive — SuperOps returns UTC)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=datetime.timezone.utc)
     return dt

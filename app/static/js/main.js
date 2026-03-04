@@ -187,9 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const prioritySlug = (item.priority_text || 'n-a').toLowerCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
 
-        // Row highlighting for SLA states
+        // Row highlighting for SLA states and Critical priority
         let rowClass = '';
-        if (slaClass === 'sla-overdue') rowClass = 'row-sla-violated';
+        if (prioritySlug === 'critical') rowClass = 'row-priority-critical';
+        else if (slaClass === 'sla-overdue') rowClass = 'row-sla-violated';
         else if (slaClass === 'sla-critical') rowClass = 'row-sla-critical';
         else if (slaClass === 'sla-warning') rowClass = 'row-sla-warning';
 
