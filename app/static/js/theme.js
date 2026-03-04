@@ -2280,6 +2280,14 @@
     window._debugEasterEggs.retroCRT = triggerRetro;
     window._debugEasterEggs.nyanCat = triggerNyanCat;
     window._debugEasterEggs.alertCascade = triggerAlertCascade;
+    function disableAllThemes() {
+        konamiCallback = null;
+        handleMatrixRain(false);
+        handleBeeAnimation(false);
+        handleBeeconName(false);
+        handleJapanAnimation(false);
+    }
+
     window._debugEasterEggs.lockThemes = function() {
         localStorage.removeItem(STORAGE_KEYS.easterEggsUnlocked);
         var picker = document.getElementById('color-theme-picker');
@@ -2289,11 +2297,7 @@
         if (['matrix', 'bee', 'japan'].indexOf(current) !== -1) {
             localStorage.setItem(STORAGE_KEYS.colorTheme, '');
             document.documentElement.removeAttribute('data-color-theme');
-            konamiCallback = null;
-            handleMatrixRain(false);
-            handleBeeAnimation(false);
-            handleBeeconName(false);
-            handleJapanAnimation(false);
+            disableAllThemes();
         }
     };
     window._debugEasterEggs.resetToDefault = function() {
@@ -2301,11 +2305,7 @@
         localStorage.setItem(STORAGE_KEYS.theme, 'light');
         document.documentElement.removeAttribute('data-color-theme');
         document.documentElement.setAttribute('data-theme', 'light');
-        konamiCallback = null;
-        handleMatrixRain(false);
-        handleBeeAnimation(false);
-        handleBeeconName(false);
-        handleJapanAnimation(false);
+        disableAllThemes();
         var swatches = document.querySelectorAll('.theme-swatch');
         swatches.forEach(function(s) {
             s.classList.toggle('active', s.dataset.color === '');

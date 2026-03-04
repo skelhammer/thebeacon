@@ -96,7 +96,7 @@ def create_app(config):
         views = config.get('views', {})
         return next(iter(views), 'helpdesk')
 
-    def _get_tickets_for_view(view_slug, agent_id=None, force_refresh=False):
+    def _get_tickets_for_view(view_slug, agent_id=None, force_refresh=False, force_all=False):
         """Fetch, filter, and section tickets for a view.
 
         Returns:
@@ -135,23 +135,23 @@ def create_app(config):
             if config.get('agents', {}).get('auto_fetch', True):
                 agent_mapping = _client.fetch_technicians()
 
-            # Fetch closed ticket counts (non-blocking on initial load, sync on refresh)
+            # Fetch closed ticket counts (use 300s cache TTL unless force_all)
             closed_counts = {'today': None, 'this_week': None}
             try:
                 closed_counts = _client.fetch_closed_counts(
                     view_slug=view_slug, view_config=view_config,
-                    agent_id=agent_id, force=force_refresh,
+                    agent_id=agent_id, force=force_all,
                 )
             except Exception as e:
                 logger.warning(f"Failed to fetch closed counts: {e}")
 
-            # Fetch monthly averages (response time, resolution time)
+            # Fetch monthly averages (use 300s cache TTL unless force_all)
             monthly_avgs = {'avg_response_mins': None, 'avg_close_hours': None}
             avg_group_ids = config.get('monthly_averages', {}).get('tech_group_ids', [])
             try:
                 monthly_avgs = _client.fetch_monthly_averages(
                     view_slug=view_slug, tech_group_ids=avg_group_ids,
-                    force=force_refresh,
+                    force=force_all,
                 )
             except Exception as e:
                 logger.warning(f"Failed to fetch monthly averages: {e}")
@@ -236,10 +236,11 @@ def create_app(config):
             return jsonify({"error": "Unknown view"}), 404
 
         agent_id = request.args.get('agent_id', type=int)
+        force_all = request.args.get('force_all', type=int, default=0)
         current_view_display = supported[view_slug]['display_name']
 
         s1, s2, s3, s4, agent_mapping, closed_counts, monthly_avgs, error = _get_tickets_for_view(
-            view_slug, agent_id=agent_id, force_refresh=True
+            view_slug, agent_id=agent_id, force_refresh=True, force_all=bool(force_all)
         )
 
         return jsonify({
