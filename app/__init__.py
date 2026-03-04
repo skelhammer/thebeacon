@@ -173,7 +173,8 @@ def create_app(config):
         dashboard_time_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
         refresh_ms = config.get('dashboard', {}).get('refresh_interval_seconds', 60) * 1000
         ticket_url_template = _build_ticket_url_template()
-        thresholds = config.get('alert_thresholds', {})
+        view_config = config.get('views', {}).get(view_slug, {})
+        thresholds = view_config.get('alert_thresholds', config.get('alert_thresholds', {}))
         auto_dim = config.get('auto_dim', {})
 
         return render_template(

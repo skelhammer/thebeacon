@@ -2296,10 +2296,7 @@ table td a:hover {
     }
 }
 
-/* Good (51-60) — static green */
-.ticket-count-number.count-good {
-    color: #10b981;
-}
+
 
 /* Sweating (81-90) — amber wobble/shake */
 .ticket-count-number.count-sweating {

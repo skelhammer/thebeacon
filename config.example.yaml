@@ -26,14 +26,16 @@ views:
   #   icon: "wrench"
   #   tech_group_ids:
   #     - "YOUR_GROUP_ID_HERE"
+  #   alert_thresholds:             # Optional per-view thresholds (overrides global)
+  #     ghost_town: 5
+  #     zen: 10
+  #     calm: 15
+  #     sweating: 20
+  #     warning: 25
+  #     danger: 30
   # tier-2:
   #   display_name: "Tier 2"
-  #   icon: "shield-check"
-  #   tech_group_ids:
-  #     - "YOUR_GROUP_ID_HERE"
-  # project:
-  #   display_name: "Project"
-  #   icon: "folder-kanban"
+  #   icon: "chevrons-up"
   #   tech_group_ids:
   #     - "YOUR_GROUP_ID_HERE"
 
@@ -67,17 +69,17 @@ status_mapping:
 
 # Alert thresholds for total ticket count display
 # Each tier triggers at >= the value. Tiers (low to high):
-# ghost_town (<30), zen (30-39), calm (40-49), good (50-59),
-# normal (60-79, no effects), sweating (80-89), warning/SOS (90-99),
-# danger/"This is Fine" (100+)
+# ghost_town (<20), zen (20-39), calm (40-49),
+# normal (50-69, no effects), sweating (70-79), warning/SOS (80-89),
+# danger/"This is Fine" (90+)
+# Views can override with their own alert_thresholds section
 alert_thresholds:
-  ghost_town: 30
+  ghost_town: 20
   zen: 40
   calm: 50
-  good: 60
-  sweating: 80
-  warning: 90
-  danger: 100
+  sweating: 70
+  warning: 80
+  danger: 90
 
 # Dashboard settings
 dashboard:

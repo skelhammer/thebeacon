@@ -2405,7 +2405,6 @@
                         { text: 'Ghost Town', key: 'stateGhostTown', icon: '\uD83C\uDFDA\uFE0F' },
                         { text: 'Zen Garden', key: 'stateZen', icon: '\uD83E\uDDD8' },
                         { text: 'Calm', key: 'stateCalm', icon: '\uD83D\uDFE2' },
-                        { text: 'Good', key: 'stateGood', icon: '\u2705' },
                         { text: 'Normal', key: 'stateNormal', icon: '\u26AA' },
                         { text: 'Sweating', key: 'stateSweating', icon: '\uD83D\uDE13' },
                         { text: 'SOS', key: 'stateSOS', icon: '\uD83D\uDEA8' },

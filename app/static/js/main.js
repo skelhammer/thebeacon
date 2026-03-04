@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const TICKET_URL_TEMPLATE = /^https?:\/\//.test(_rawTicketUrl) ? _rawTicketUrl : '';
     const AUTO_REFRESH_INTERVAL_MS = window.AUTO_REFRESH_MS || 0;
     const CURRENT_TICKET_TYPE_SLUG = window.CURRENT_TICKET_TYPE_SLUG || 'helpdesk';
-    const THRESHOLDS = window.ALERT_THRESHOLDS || { ghost_town: 30, zen: 40, calm: 50, good: 60, sweating: 80, warning: 90, danger: 100 };
+    const THRESHOLDS = window.ALERT_THRESHOLDS || { ghost_town: 30, zen: 40, calm: 50, sweating: 80, warning: 90, danger: 100 };
 
     window.currentApiData = {};
     let sortState = {
@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             totalActiveItemsCount.textContent = totalActiveItems;
 
             // All possible count state classes
-            var allCountClasses = ['count-ghost-town', 'count-zen', 'count-calm', 'count-good', 'count-sweating', 'count-warning', 'count-danger', 'pulse-red'];
+            var allCountClasses = ['count-ghost-town', 'count-zen', 'count-calm', 'count-sweating', 'count-warning', 'count-danger', 'pulse-red'];
             allCountClasses.forEach(function(cls) { totalActiveItemsCount.classList.remove(cls); });
             if (sirenLeft) sirenLeft.classList.remove('active');
             if (sirenRight) sirenRight.classList.remove('active');
@@ -305,11 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.style.position = 'relative';
                 wrapper.appendChild(sweat);
                 showPersistentDog(false);
-            } else if (totalActiveItems >= (THRESHOLDS.good || 60)) {
-                // Normal range — no class
-                showPersistentDog(false);
             } else if (totalActiveItems >= (THRESHOLDS.calm || 50)) {
-                totalActiveItemsCount.classList.add('count-good');
+                // Normal range — no class
                 showPersistentDog(false);
             } else if (totalActiveItems >= (THRESHOLDS.zen || 40)) {
                 totalActiveItemsCount.classList.add('count-calm');
@@ -1002,7 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window._debugEasterEggs.eventBeer = showBeerEvent;
 
     // Debug: preview threshold visual states on the count number
-    var _allCountClasses = ['count-ghost-town', 'count-zen', 'count-calm', 'count-good', 'count-sweating', 'count-warning', 'count-danger', 'pulse-red'];
+    var _allCountClasses = ['count-ghost-town', 'count-zen', 'count-calm', 'count-sweating', 'count-warning', 'count-danger', 'pulse-red'];
     function _debugSetState(cls, sirens, persistentDog) {
         var el = document.getElementById('total-active-items-count');
         if (!el) return;
@@ -1047,7 +1044,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window._debugEasterEggs.stateGhostTown = function() { _debugSetState('count-ghost-town'); };
     window._debugEasterEggs.stateZen = function() { _debugSetState('count-zen'); showZenCelebration(); };
     window._debugEasterEggs.stateCalm = function() { _debugSetState('count-calm'); showFireworksCelebration(); };
-    window._debugEasterEggs.stateGood = function() { _debugSetState('count-good'); };
     window._debugEasterEggs.stateNormal = function() { _debugSetState(null); };
     window._debugEasterEggs.stateSweating = function() { _debugSetState('count-sweating'); };
     window._debugEasterEggs.stateSOS = function() { _debugSetState('count-warning', true); };
