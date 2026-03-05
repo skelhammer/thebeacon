@@ -772,9 +772,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(overlay);
 
         // Dismiss on click or key press
+        var dismissed = false;
         function dismiss() {
+            if (dismissed) return;
+            dismissed = true;
             overlay.classList.add('event-404--fade-out');
             setTimeout(function() { overlay.remove(); }, 500);
+            overlay.removeEventListener('click', dismiss);
             document.removeEventListener('keydown', dismiss);
         }
         overlay.style.pointerEvents = 'auto';
@@ -872,8 +876,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 7000);
     }
 
-    // Check every 15 seconds
-    setInterval(checkTimeBasedEvents, 15000);
+    // Schedule next time-based event instead of polling every 15s
+    function scheduleNextTimeEvent() {
+        var now = new Date();
+        var currentMin = now.getHours() * 60 + now.getMinutes();
+        var eventMinutes = [16 * 60 + 4, 16 * 60 + 20, 17 * 60]; // 4:04 PM, 4:20 PM, 5:00 PM
+        var msUntil = null;
+        for (var i = 0; i < eventMinutes.length; i++) {
+            if (eventMinutes[i] > currentMin) {
+                var target = new Date(now);
+                target.setHours(Math.floor(eventMinutes[i] / 60), eventMinutes[i] % 60, 0, 0);
+                msUntil = target - now;
+                break;
+            }
+        }
+        if (msUntil === null) {
+            // All events passed today, schedule for first event tomorrow
+            var tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(16, 4, 0, 0);
+            msUntil = tomorrow - now;
+        }
+        setTimeout(function() {
+            checkTimeBasedEvents();
+            scheduleNextTimeEvent();
+        }, msUntil + 1000); // +1s buffer to land inside the target minute
+    }
+    // Fire once now (in case we loaded during an event minute) then schedule
+    checkTimeBasedEvents();
+    scheduleNextTimeEvent();
 
     // Expose forced triggers for debug menu
     window._debugEasterEggs = window._debugEasterEggs || {};

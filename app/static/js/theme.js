@@ -533,8 +533,8 @@
             okBtn.addEventListener('click', function() {
                 dismissBox(box);
                 if (activeAlerts.length < 20 && !finalBossShown) {
-                    setTimeout(function() { createAlert(getRandomMsg()); }, 80);
-                    setTimeout(function() { createAlert(getRandomMsg()); }, 200);
+                    cascadeTimers.push(setTimeout(function() { createAlert(getRandomMsg()); }, 80));
+                    cascadeTimers.push(setTimeout(function() { createAlert(getRandomMsg()); }, 200));
                 }
                 checkFinalBoss();
             });
@@ -832,7 +832,9 @@
                 if (idx > -1) trailElements.splice(idx, 1);
             }, 800);
         };
-        document.addEventListener('mousemove', matrixMoveHandler);
+        if (!document.documentElement.classList.contains('kiosk-mode')) {
+            document.addEventListener('mousemove', matrixMoveHandler);
+        }
 
         // --- Konami: "System Failure" ---
         konamiCallback = function() {
@@ -1033,7 +1035,10 @@
         if (!container) return;
 
         if (!active) {
-            beeTimers.forEach(function(id) { clearInterval(id); clearTimeout(id); });
+            beeTimers.forEach(function(entry) {
+                if (typeof entry === 'function') { entry(); }
+                else { clearInterval(entry); clearTimeout(entry); }
+            });
             beeTimers = [];
             if (beeMoveHandler) {
                 document.removeEventListener('mousemove', beeMoveHandler);
@@ -1275,17 +1280,20 @@
 
         var lastPollenTrailTime = 0;
 
-        beeMoveHandler = function(e) {
-            _beeCursorX = e.clientX;
-            _beeCursorY = e.clientY;
-            // Pollen cursor trail
-            var now = Date.now();
-            if (now - lastPollenTrailTime > 100) {
-                lastPollenTrailTime = now;
-                spawnPollen(e.clientX + rand(-8, 8), e.clientY + rand(-5, 10));
-            }
-        };
-        document.addEventListener('mousemove', beeMoveHandler);
+        var isKiosk = document.documentElement.classList.contains('kiosk-mode');
+        if (!isKiosk) {
+            beeMoveHandler = function(e) {
+                _beeCursorX = e.clientX;
+                _beeCursorY = e.clientY;
+                // Pollen cursor trail
+                var now = Date.now();
+                if (now - lastPollenTrailTime > 100) {
+                    lastPollenTrailTime = now;
+                    spawnPollen(e.clientX + rand(-8, 8), e.clientY + rand(-5, 10));
+                }
+            };
+            document.addEventListener('mousemove', beeMoveHandler);
+        }
 
         // ========================
         //  BEE FACTORY
@@ -1298,6 +1306,8 @@
 
         function createBee(opts) {
             opts = opts || {};
+            // Cap concurrent bees to prevent DOM accumulation (bypass for konami swarm)
+            if (!opts.bypassCap && container.querySelectorAll('.bee').length >= 25) return;
             var bee = document.createElement('div');
             bee.className = 'bee bee--buzzing';
             bee.textContent = '\uD83D\uDC1D';
@@ -1492,7 +1502,7 @@
 
                 // Pollen trail — keep going until the bee is actually removed
                 pollenCounter++;
-                if (pollenCounter % 6 === 0) {
+                if (pollenCounter % 18 === 0) {
                     var dist = Math.sqrt(Math.pow(x - lastPollenX, 2) + Math.pow(y - lastPollenY, 2));
                     if (dist > 40 && x > -60 && x < W + 60) {
                         spawnPollen(x + rand(-5, 5), y + rand(5, 15), isRainbow);
@@ -1605,15 +1615,16 @@
         }
 
         // Check every 15-25s
+        var _bearPeekTimer = null;
         function scheduleBearPeek() {
             var delay = 15000 + Math.random() * 10000;
-            var t = setTimeout(function() {
+            _bearPeekTimer = setTimeout(function() {
                 maybeBearPeek();
                 scheduleBearPeek();
             }, delay);
-            beeTimers.push(t);
         }
         scheduleBearPeek();
+        beeTimers.push(function() { clearTimeout(_bearPeekTimer); });
 
         // --- 6. Bee Landing on Ticket Row ---
         function doBeeLanding() {
@@ -1682,15 +1693,16 @@
         }
 
         // Check every 20-45s
+        var _beeLandingTimer = null;
         function scheduleBeeLanding() {
             var delay = 20000 + Math.random() * 25000;
-            var t = setTimeout(function() {
+            _beeLandingTimer = setTimeout(function() {
                 maybeBeeLanding();
                 scheduleBeeLanding();
             }, delay);
-            beeTimers.push(t);
         }
         scheduleBeeLanding();
+        beeTimers.push(function() { clearTimeout(_beeLandingTimer); });
 
         // --- 7. Honey Drip ---
         function doHoneyDrip() {
@@ -1734,15 +1746,16 @@
         }
 
         // Check every 30-60s
+        var _honeyDripTimer = null;
         function scheduleHoneyDrip() {
             var delay = 30000 + Math.random() * 30000;
-            var t = setTimeout(function() {
+            _honeyDripTimer = setTimeout(function() {
                 maybeHoneyDrip();
                 scheduleHoneyDrip();
             }, delay);
-            beeTimers.push(t);
         }
         scheduleHoneyDrip();
+        beeTimers.push(function() { clearTimeout(_honeyDripTimer); });
 
         // --- 8. Queen Bee Procession ---
         function doQueenProcession() {
@@ -1827,15 +1840,16 @@
         }
 
         // Check every 40-80s
+        var _queenTimer = null;
         function scheduleQueenProcession() {
             var delay = 40000 + Math.random() * 40000;
-            var t = setTimeout(function() {
+            _queenTimer = setTimeout(function() {
                 maybeQueenProcession();
                 scheduleQueenProcession();
             }, delay);
-            beeTimers.push(t);
         }
         scheduleQueenProcession();
+        beeTimers.push(function() { clearTimeout(_queenTimer); });
 
         // Expose forced triggers for debug menu
         window._debugEasterEggs = window._debugEasterEggs || {};
@@ -1966,7 +1980,8 @@
                     var t = setTimeout(function() {
                         createBee({
                             goingRight: Math.random() > 0.5,
-                            pattern: pick(['wave', 'drunken', 'zigzag', 'divebomb', 'loopy'])
+                            pattern: pick(['wave', 'drunken', 'zigzag', 'divebomb', 'loopy']),
+                            bypassCap: true
                         });
                     }, delay);
                     beeTimers.push(t);
